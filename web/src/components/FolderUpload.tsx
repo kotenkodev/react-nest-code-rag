@@ -1,4 +1,10 @@
-import { useState, useRef, type ChangeEvent, type FormEvent, type DragEvent } from "react";
+import {
+  useState,
+  useRef,
+  type ChangeEvent,
+  type FormEvent,
+  type DragEvent,
+} from "react";
 import { Input } from "./ui/input/input";
 import { Button } from "./ui/button/button";
 import {
@@ -31,7 +37,9 @@ async function readEntryFiles(entry: any): Promise<File[]> {
     return new Promise((resolve) => {
       entry.file(
         (file: File) => {
-          const relativePath = entry.fullPath ? entry.fullPath.replace(/^\//, "") : file.name;
+          const relativePath = entry.fullPath
+            ? entry.fullPath.replace(/^\//, "")
+            : file.name;
           Object.defineProperty(file, "webkitRelativePath", {
             value: relativePath,
             writable: false,
@@ -39,7 +47,7 @@ async function readEntryFiles(entry: any): Promise<File[]> {
           });
           resolve([file]);
         },
-        () => resolve([])
+        () => resolve([]),
       );
     });
   } else if (entry.isDirectory) {
@@ -47,22 +55,29 @@ async function readEntryFiles(entry: any): Promise<File[]> {
     const entries: any[] = await new Promise((resolve) => {
       dirReader.readEntries(
         (results: any[]) => resolve(results),
-        () => resolve([])
+        () => resolve([]),
       );
     });
-    const nestedFiles = await Promise.all(entries.map((child) => readEntryFiles(child)));
+    const nestedFiles = await Promise.all(
+      entries.map((child) => readEntryFiles(child)),
+    );
     return nestedFiles.flat();
   }
   return [];
 }
 
-export function FolderUpload({ onSourceSelected, className = "" }: FolderUploadProps) {
+export function FolderUpload({
+  onSourceSelected,
+  className = "",
+}: FolderUploadProps) {
   const [activeTab, setActiveTab] = useState<"link" | "folder">("folder");
 
   // Link state
   const [repoUrl, setRepoUrl] = useState("");
   const [branch, setBranch] = useState("main");
-  const [linkStatus, setLinkStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [linkStatus, setLinkStatus] = useState<
+    "idle" | "loading" | "success" | "error"
+  >("idle");
   const [linkError, setLinkError] = useState("");
 
   // Folder & File upload state
@@ -82,8 +97,8 @@ export function FolderUpload({ onSourceSelected, className = "" }: FolderUploadP
     new Set(
       files
         .map((f) => f.webkitRelativePath?.split("/")[0] || f.name)
-        .filter(Boolean)
-    )
+        .filter(Boolean),
+    ),
   );
 
   const processAndAddFiles = (newFiles: File[]) => {
@@ -92,7 +107,9 @@ export function FolderUpload({ onSourceSelected, className = "" }: FolderUploadP
 
     if (newFiles.length === 0) return;
 
-    const existingPaths = new Set(files.map((f) => f.webkitRelativePath || f.name));
+    const existingPaths = new Set(
+      files.map((f) => f.webkitRelativePath || f.name),
+    );
     const combinedFiles = [...files];
 
     let currentTotalSize = totalSizeBytes;
@@ -124,7 +141,7 @@ export function FolderUpload({ onSourceSelected, className = "" }: FolderUploadP
       prevFiles.filter((file) => {
         const rootName = file.webkitRelativePath?.split("/")[0] || file.name;
         return rootName !== targetName;
-      })
+      }),
     );
   };
 
@@ -236,20 +253,22 @@ export function FolderUpload({ onSourceSelected, className = "" }: FolderUploadP
   };
 
   return (
-    <div className={`border border-[var(--border)] bg-[var(--surface)] p-3 ${className}`}>
+    <div
+      className={`border border-[var(--border)] bg-[var(--surface)] p-3 ${className}`}
+    >
       {/* Mode Toggle Header */}
-      <div className="mb-3 flex items-center justify-between border-b border-[var(--border)] pb-2">
-        <span className="text-[0.6rem] font-mono tracking-[0.16em] text-[var(--text-muted)] uppercase">
+      <div className="mb-3 border-b border-[var(--border)] pb-2">
+        <div className="mb-2 text-[0.6rem] font-mono tracking-[0.16em] text-[var(--text-muted)] uppercase">
           SOURCE CONFIGURATION
-        </span>
-        <div className="flex gap-1">
+        </div>
+        <div className="grid grid-cols-2 gap-1.5">
           <button
             type="button"
             onClick={() => setActiveTab("link")}
-            className={`flex items-center gap-1 px-2 py-1 text-[0.65rem] font-mono transition-all ${
+            className={`flex items-center justify-center gap-1 py-1 text-[0.62rem] font-mono transition-all ${
               activeTab === "link"
-                ? "bg-[var(--surface-raised)] text-[var(--color-green)] border border-[var(--border-active)]"
-                : "text-[var(--text-muted)] hover:text-[var(--text-secondary)] border border-transparent"
+                ? "bg-[var(--surface-raised)] text-[var(--color-green)] border border-[var(--border-active)] font-medium"
+                : "text-[var(--text-muted)] hover:text-[var(--text-secondary)] border border-[var(--border)] bg-transparent"
             }`}
           >
             <Link2 size={11} /> LINK
@@ -257,10 +276,10 @@ export function FolderUpload({ onSourceSelected, className = "" }: FolderUploadP
           <button
             type="button"
             onClick={() => setActiveTab("folder")}
-            className={`flex items-center gap-1 px-2 py-1 text-[0.65rem] font-mono transition-all ${
+            className={`flex items-center justify-center gap-1 py-1 text-[0.62rem] font-mono transition-all ${
               activeTab === "folder"
-                ? "bg-[var(--surface-raised)] text-[var(--color-green)] border border-[var(--border-active)]"
-                : "text-[var(--text-muted)] hover:text-[var(--text-secondary)] border border-transparent"
+                ? "bg-[var(--surface-raised)] text-[var(--color-green)] border border-[var(--border-active)] font-medium"
+                : "text-[var(--text-muted)] hover:text-[var(--text-secondary)] border border-[var(--border)] bg-transparent"
             }`}
           >
             <Folder size={11} /> FOLDER
@@ -280,7 +299,6 @@ export function FolderUpload({ onSourceSelected, className = "" }: FolderUploadP
                 setRepoUrl(e.target.value);
                 setLinkError("");
               }}
-              prefix="git://"
             />
           </div>
           <div className="grid grid-cols-2 gap-2">
@@ -312,7 +330,8 @@ export function FolderUpload({ onSourceSelected, className = "" }: FolderUploadP
 
           {linkStatus === "success" && (
             <div className="flex items-center gap-1.5 text-[0.65rem] text-[var(--color-green)] font-mono">
-              <CheckCircle2 size={12} /> Repository linked & queued for indexing.
+              <CheckCircle2 size={12} /> Repository linked & queued for
+              indexing.
             </div>
           )}
         </form>
@@ -329,7 +348,10 @@ export function FolderUpload({ onSourceSelected, className = "" }: FolderUploadP
             className="hidden"
             id="folder-upload-input"
             onChange={handleFilesSelected}
-            {...({ webkitdirectory: "", directory: "" } as Record<string, string>)}
+            {...({ webkitdirectory: "", directory: "" } as Record<
+              string,
+              string
+            >)}
           />
 
           {/* Native Hidden Multi-File Picker Input */}
@@ -368,8 +390,13 @@ export function FolderUpload({ onSourceSelected, className = "" }: FolderUploadP
               className="w-full px-1 text-[0.56rem] tracking-tight"
               onClick={() => folderInputRef.current?.click()}
             >
-              <Folder size={10} className="mr-1 shrink-0 text-[var(--color-green)]" />
-              <span className="truncate">{files.length > 0 ? "+ FOLDER" : "FOLDER"}</span>
+              <Folder
+                size={10}
+                className="mr-1 shrink-0 text-[var(--color-green)]"
+              />
+              <span className="truncate">
+                {files.length > 0 ? "+ FOLDER" : "FOLDER"}
+              </span>
             </Button>
 
             <Button
@@ -380,8 +407,13 @@ export function FolderUpload({ onSourceSelected, className = "" }: FolderUploadP
               onClick={() => fileInputRef.current?.click()}
               title="Select multiple files using Ctrl / Shift in native file dialog"
             >
-              <Files size={10} className="mr-1 shrink-0 text-[var(--color-green)]" />
-              <span className="truncate">{files.length > 0 ? "+ FILES" : "FILES"}</span>
+              <Files
+                size={10}
+                className="mr-1 shrink-0 text-[var(--color-green)]"
+              />
+              <span className="truncate">
+                {files.length > 0 ? "+ FILES" : "FILES"}
+              </span>
             </Button>
           </div>
 
@@ -395,7 +427,10 @@ export function FolderUpload({ onSourceSelected, className = "" }: FolderUploadP
                     className="flex items-center justify-between border border-[var(--border)] bg-[var(--surface-raised)] px-2 py-1 text-[0.65rem] font-mono text-[var(--text-secondary)]"
                   >
                     <div className="flex items-center gap-1.5 truncate">
-                      <FileCode size={12} className="text-[var(--color-green)] shrink-0" />
+                      <FileCode
+                        size={12}
+                        className="text-[var(--color-green)] shrink-0"
+                      />
                       <span className="truncate">{name}</span>
                     </div>
                     <button
@@ -411,7 +446,9 @@ export function FolderUpload({ onSourceSelected, className = "" }: FolderUploadP
               </div>
 
               <div className="flex items-center justify-between text-[0.6rem] font-mono text-[var(--text-muted)] px-1">
-                <span>{files.length} files ({rootFolderNames.length} items)</span>
+                <span>
+                  {files.length} files ({rootFolderNames.length} items)
+                </span>
                 <span>{formattedSize} MB</span>
               </div>
 
