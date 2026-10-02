@@ -1,4 +1,4 @@
-import { useState, useRef, type ChangeEvent, type FormEvent } from "react";
+import { useState, useRef, type ChangeEvent, type FormEvent, type DragEvent } from "react";
 import { Input } from "./ui/input/input";
 import { Button } from "./ui/button/button";
 import {
@@ -11,6 +11,7 @@ import {
   FolderPlus,
   ArrowRight,
   FileCode,
+  Files,
 } from "lucide-react";
 
 const MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024; // 2MB per file
@@ -25,55 +26,147 @@ export interface FolderUploadProps {
   className?: string;
 }
 
+async function readEntryFiles(entry: any): Promise<File[]> {
+  if (entry.isFile) {
+    return new Promise((resolve) => {
+      entry.file(
+        (file: File) => {
+          const relativePath = entry.fullPath ? entry.fullPath.replace(/^\//, "") : file.name;
+          Object.defineProperty(file, "webkitRelativePath", {
+            value: relativePath,
+            writable: false,
+            configurable: true,
+          });
+          resolve([file]);
+        },
+        () => resolve([])
+      );
+    });
+  } else if (entry.isDirectory) {
+    const dirReader = entry.createReader();
+    const entries: any[] = await new Promise((resolve) => {
+      dirReader.readEntries(
+        (results: any[]) => resolve(results),
+        () => resolve([])
+      );
+    });
+    const nestedFiles = await Promise.all(entries.map((child) => readEntryFiles(child)));
+    return nestedFiles.flat();
+  }
+  return [];
+}
+
 export function FolderUpload({ onSourceSelected, className = "" }: FolderUploadProps) {
   const [activeTab, setActiveTab] = useState<"link" | "folder">("folder");
-  
+
   // Link state
   const [repoUrl, setRepoUrl] = useState("");
   const [branch, setBranch] = useState("main");
   const [linkStatus, setLinkStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [linkError, setLinkError] = useState("");
 
-  // Folder upload state
+  // Folder & File upload state
   const [files, setFiles] = useState<File[]>([]);
   const [folderError, setFolderError] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const folderInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Folder size calculation
   const totalSizeBytes = files.reduce((acc, f) => acc + f.size, 0);
   const formattedSize = (totalSizeBytes / (1024 * 1024)).toFixed(2);
 
-  const handleFolderChange = (event: ChangeEvent<HTMLInputElement>) => {
+  const rootFolderNames = Array.from(
+    new Set(
+      files
+        .map((f) => f.webkitRelativePath?.split("/")[0] || f.name)
+        .filter(Boolean)
+    )
+  );
+
+  const processAndAddFiles = (newFiles: File[]) => {
     setFolderError("");
     setUploadSuccess(false);
 
-    if (!event.target.files || event.target.files.length === 0) {
-      setFiles([]);
-      return;
-    }
+    if (newFiles.length === 0) return;
 
-    const selectedFiles = Array.from(event.target.files);
-    let totalSize = 0;
-    const validFiles: File[] = [];
+    const existingPaths = new Set(files.map((f) => f.webkitRelativePath || f.name));
+    const combinedFiles = [...files];
 
-    for (const file of selectedFiles) {
+    let currentTotalSize = totalSizeBytes;
+
+    for (const file of newFiles) {
+      const pathKey = file.webkitRelativePath || file.name;
+      if (existingPaths.has(pathKey)) continue;
+
       if (file.size > MAX_FILE_SIZE_BYTES) {
         setFolderError(`File "${file.name}" exceeds the 2MB limit.`);
         return;
       }
 
-      totalSize += file.size;
-      if (totalSize > MAX_BATCH_SIZE_BYTES) {
-        setFolderError("Total folder size exceeds the 10MB batch limit.");
+      currentTotalSize += file.size;
+      if (currentTotalSize > MAX_BATCH_SIZE_BYTES) {
+        setFolderError("Total selection size exceeds the 10MB batch limit.");
         return;
       }
 
-      validFiles.push(file);
+      existingPaths.add(pathKey);
+      combinedFiles.push(file);
     }
 
-    setFiles(validFiles);
+    setFiles(combinedFiles);
+  };
+
+  const removeFolderOrFile = (targetName: string) => {
+    setFiles((prevFiles) =>
+      prevFiles.filter((file) => {
+        const rootName = file.webkitRelativePath?.split("/")[0] || file.name;
+        return rootName !== targetName;
+      })
+    );
+  };
+
+  const handleFilesSelected = (event: ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files) {
+      processAndAddFiles(Array.from(event.target.files));
+    }
+  };
+
+  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = async (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const items = Array.from(e.dataTransfer.items || []);
+    if (items.length > 0) {
+      const filePromises = items.map((item) => {
+        const entry = item.webkitGetAsEntry ? item.webkitGetAsEntry() : null;
+        if (entry) {
+          return readEntryFiles(entry);
+        }
+        const file = item.getAsFile();
+        return Promise.resolve(file ? [file] : []);
+      });
+
+      const extractedFiles = (await Promise.all(filePromises)).flat();
+      processAndAddFiles(extractedFiles);
+    } else if (e.dataTransfer.files) {
+      processAndAddFiles(Array.from(e.dataTransfer.files));
+    }
   };
 
   const handleFolderUpload = async () => {
@@ -87,19 +180,22 @@ export function FolderUpload({ onSourceSelected, className = "" }: FolderUploadP
     });
 
     try {
-      // Simulate/Trigger API request
       await fetch("/api/upload", {
         method: "POST",
         body: formData,
-      }).catch(() => null); // Gracefully handle dev mock
+      }).catch(() => null);
 
       setIsUploading(false);
       setUploadSuccess(true);
 
-      const folderName = files[0]?.webkitRelativePath?.split("/")[0] || "Local Folder";
+      const summaryName =
+        rootFolderNames.length > 1
+          ? `${rootFolderNames.length} Sources (${rootFolderNames.slice(0, 2).join(", ")}...)`
+          : rootFolderNames[0] || "Local Selection";
+
       onSourceSelected?.({
         type: "folder",
-        value: folderName,
+        value: summaryName,
         fileCount: files.length,
       });
     } catch (err) {
@@ -119,7 +215,6 @@ export function FolderUpload({ onSourceSelected, className = "" }: FolderUploadP
     setLinkStatus("loading");
 
     try {
-      // Simulate API indexing request
       await new Promise((resolve) => setTimeout(resolve, 800));
       setLinkStatus("success");
       onSourceSelected?.({
@@ -132,13 +227,12 @@ export function FolderUpload({ onSourceSelected, className = "" }: FolderUploadP
     }
   };
 
-  const resetFolder = () => {
+  const resetSelection = () => {
     setFiles([]);
     setFolderError("");
     setUploadSuccess(false);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    if (folderInputRef.current) folderInputRef.current.value = "";
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   return (
@@ -169,7 +263,7 @@ export function FolderUpload({ onSourceSelected, className = "" }: FolderUploadP
                 : "text-[var(--text-muted)] hover:text-[var(--text-secondary)] border border-transparent"
             }`}
           >
-            <Folder size={11} /> FOLDER
+            <Folder size={11} /> FILES / FOLDERS
           </button>
         </div>
       </div>
@@ -224,51 +318,100 @@ export function FolderUpload({ onSourceSelected, className = "" }: FolderUploadP
         </form>
       )}
 
-      {/* Tab 2: LOCAL FOLDER UPLOAD */}
+      {/* Tab 2: LOCAL FOLDER / MULTI-FILE UPLOAD */}
       {activeTab === "folder" && (
         <div className="space-y-3">
+          {/* Native Hidden Folder Picker Input */}
+          <input
+            ref={folderInputRef}
+            type="file"
+            multiple
+            className="hidden"
+            id="folder-upload-input"
+            onChange={handleFilesSelected}
+            {...({ webkitdirectory: "", directory: "" } as Record<string, string>)}
+          />
+
+          {/* Native Hidden Multi-File Picker Input */}
           <input
             ref={fileInputRef}
             type="file"
             multiple
             className="hidden"
-            id="folder-upload-input"
-            onChange={handleFolderChange}
-            {...({ webkitdirectory: "", directory: "" } as Record<string, string>)}
+            id="multi-file-upload-input"
+            onChange={handleFilesSelected}
           />
 
-          {files.length === 0 ? (
-            <label
-              htmlFor="folder-upload-input"
-              className="flex cursor-pointer flex-col items-center justify-center border border-dashed border-[var(--border)] bg-[var(--surface-raised)] p-4 text-center transition-all hover:border-[var(--color-green)] hover:bg-[var(--surface)]"
+          {/* Drag & Drop Zone */}
+          <div
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className={`flex flex-col items-center justify-center border border-dashed p-3 text-center transition-all ${
+              isDragging
+                ? "border-[var(--color-green)] bg-[var(--surface-raised)] shadow-[var(--glow-green)]"
+                : "border-[var(--border)] bg-[var(--surface-raised)]"
+            }`}
+          >
+            <FolderPlus size={18} className="mb-1 text-[var(--color-green)]" />
+            <span className="text-[0.65rem] font-mono text-[var(--text-secondary)] font-medium uppercase">
+              {isDragging ? "DROP ITEMS HERE" : "DRAG & DROP FOLDERS OR FILES"}
+            </span>
+          </div>
+
+          {/* Action Buttons: Add Folder vs Add Multi-Files */}
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              type="button"
+              variant="OUTLINE"
+              size="SM"
+              className="w-full text-[0.62rem]"
+              onClick={() => folderInputRef.current?.click()}
             >
-              <FolderPlus size={20} className="mb-2 text-[var(--color-green)]" />
-              <span className="text-[0.7rem] font-mono text-[var(--text-secondary)]">
-                SELECT LOCAL PROJECT FOLDER
-              </span>
-              <span className="mt-1 text-[0.6rem] text-[var(--text-muted)]">
-                Max 2MB per file · 10MB total batch limit
-              </span>
-            </label>
-          ) : (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between border border-[var(--border)] bg-[var(--surface-raised)] px-2.5 py-2">
-                <div className="flex items-center gap-2 truncate text-[0.7rem] font-mono text-[var(--text-secondary)]">
-                  <FileCode size={14} className="text-[var(--color-green)] shrink-0" />
-                  <span className="truncate">{files[0]?.webkitRelativePath?.split("/")[0] || "Folder"}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={resetFolder}
-                  className="text-[var(--text-muted)] hover:text-[var(--color-amber)] transition-colors p-0.5"
-                  title="Clear selected folder"
-                >
-                  <XCircle size={14} />
-                </button>
+              <Folder size={11} className="mr-1 text-[var(--color-green)]" />
+              {files.length > 0 ? "+ FOLDER" : "SELECT FOLDER"}
+            </Button>
+
+            <Button
+              type="button"
+              variant="OUTLINE"
+              size="SM"
+              className="w-full text-[0.62rem]"
+              onClick={() => fileInputRef.current?.click()}
+              title="Select multiple files using Ctrl / Shift in native file dialog"
+            >
+              <Files size={11} className="mr-1 text-[var(--color-green)]" />
+              {files.length > 0 ? "+ FILES" : "MULTI-FILES"}
+            </Button>
+          </div>
+
+          {/* Summary of Selected Items with Individual Deselect Buttons */}
+          {files.length > 0 && (
+            <div className="space-y-2 border-t border-[var(--border)] pt-2.5">
+              <div className="space-y-1 max-h-32 overflow-y-auto pr-1">
+                {rootFolderNames.map((name) => (
+                  <div
+                    key={name}
+                    className="flex items-center justify-between border border-[var(--border)] bg-[var(--surface-raised)] px-2 py-1 text-[0.65rem] font-mono text-[var(--text-secondary)]"
+                  >
+                    <div className="flex items-center gap-1.5 truncate">
+                      <FileCode size={12} className="text-[var(--color-green)] shrink-0" />
+                      <span className="truncate">{name}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeFolderOrFile(name)}
+                      className="ml-2 text-[var(--text-muted)] hover:text-[var(--color-amber)] transition-colors p-0.5 shrink-0"
+                      title={`Remove ${name}`}
+                    >
+                      <XCircle size={12} />
+                    </button>
+                  </div>
+                ))}
               </div>
 
-              <div className="flex items-center justify-between text-[0.62rem] font-mono text-[var(--text-muted)] px-1">
-                <span>{files.length} files selected</span>
+              <div className="flex items-center justify-between text-[0.6rem] font-mono text-[var(--text-muted)] px-1">
+                <span>{files.length} files ({rootFolderNames.length} items)</span>
                 <span>{formattedSize} MB</span>
               </div>
 
@@ -277,10 +420,10 @@ export function FolderUpload({ onSourceSelected, className = "" }: FolderUploadP
                   type="button"
                   variant="OUTLINE"
                   size="SM"
-                  onClick={resetFolder}
-                  className="flex-1"
+                  onClick={resetSelection}
+                  className="flex-1 text-[0.62rem]"
                 >
-                  CLEAR
+                  CLEAR ALL
                 </Button>
                 <Button
                   type="button"
@@ -288,9 +431,9 @@ export function FolderUpload({ onSourceSelected, className = "" }: FolderUploadP
                   size="SM"
                   onClick={handleFolderUpload}
                   disabled={isUploading}
-                  className="flex-1"
+                  className="flex-1 text-[0.62rem]"
                 >
-                  <Upload size={12} className="mr-1" />
+                  <Upload size={11} className="mr-1" />
                   {isUploading ? "UPLOADING..." : "UPLOAD"}
                 </Button>
               </div>
@@ -305,7 +448,7 @@ export function FolderUpload({ onSourceSelected, className = "" }: FolderUploadP
 
           {uploadSuccess && (
             <div className="flex items-center gap-1.5 text-[0.65rem] text-[var(--color-green)] font-mono">
-              <CheckCircle2 size={12} /> Folder uploaded successfully!
+              <CheckCircle2 size={12} /> Items uploaded successfully!
             </div>
           )}
         </div>
