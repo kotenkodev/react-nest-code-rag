@@ -14,6 +14,8 @@ import { Badge } from "./ui/badge/badge";
 import FileTree from "./FileTree";
 import { Textarea } from "./ui/textarea/textarea";
 
+import { FolderUpload } from "./FolderUpload";
+
 export default function Workspace({
   email,
   onLogout,
@@ -23,6 +25,14 @@ export default function Workspace({
 }) {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState(false);
+  const [activeSource, setActiveSource] = useState<{
+    type: "link" | "folder";
+    value: string;
+    fileCount?: number;
+  }>({
+    type: "link",
+    value: "github.com/acme/platform",
+  });
 
   function search(event: FormEvent) {
     event.preventDefault();
@@ -48,24 +58,27 @@ export default function Workspace({
         </div>
       </header>
 
-      <div className="grid flex-1 md:grid-cols-[260px_minmax(0,1fr)]">
+      <div className="grid flex-1 md:grid-cols-[280px_minmax(0,1fr)]">
         <aside className="border-r border-[var(--border)] bg-[var(--surface)]">
           <div className="border-b border-[var(--border)] p-4">
             <div className="mb-3 text-[0.6rem] tracking-[0.16em] text-[var(--text-muted)]">
               SOURCE
             </div>
-            <div className="mb-3 flex items-center gap-2 text-xs text-[var(--text-secondary)]">
-              <Link2 size={13} className="text-[var(--color-green)]" />
-              github.com/acme/platform
+            <div className="mb-3 flex items-center gap-2 text-xs text-[var(--text-secondary)] font-mono truncate">
+              {activeSource.type === "link" ? (
+                <Link2 size={13} className="text-[var(--color-green)] shrink-0" />
+              ) : (
+                <Folder size={13} className="text-[var(--color-green)] shrink-0" />
+              )}
+              <span className="truncate">{activeSource.value}</span>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <Button variant="OUTLINE" size="SM">
-                <Link2 size={12} /> LINK
-              </Button>
-              <Button variant="OUTLINE" size="SM">
-                <Folder size={12} /> FOLDER
-              </Button>
-            </div>
+
+            <FolderUpload
+              onSourceSelected={(source) => {
+                setActiveSource(source);
+              }}
+              className="mt-2"
+            />
           </div>
           <div className="flex h-11 items-center border-b border-[var(--border)] px-4">
             <GitBranch size={13} className="text-[var(--color-green)]" />
