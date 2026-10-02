@@ -263,7 +263,7 @@ export function FolderUpload({ onSourceSelected, className = "" }: FolderUploadP
                 : "text-[var(--text-muted)] hover:text-[var(--text-secondary)] border border-transparent"
             }`}
           >
-            <Folder size={11} /> FILES / FOLDERS
+            <Folder size={11} /> FOLDER
           </button>
         </div>
       </div>
@@ -360,28 +360,28 @@ export function FolderUpload({ onSourceSelected, className = "" }: FolderUploadP
           </div>
 
           {/* Action Buttons: Add Folder vs Add Multi-Files */}
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-1.5">
             <Button
               type="button"
               variant="OUTLINE"
               size="SM"
-              className="w-full text-[0.62rem]"
+              className="w-full px-1 text-[0.56rem] tracking-tight"
               onClick={() => folderInputRef.current?.click()}
             >
-              <Folder size={11} className="mr-1 text-[var(--color-green)]" />
-              {files.length > 0 ? "+ FOLDER" : "SELECT FOLDER"}
+              <Folder size={10} className="mr-1 shrink-0 text-[var(--color-green)]" />
+              <span className="truncate">{files.length > 0 ? "+ FOLDER" : "FOLDER"}</span>
             </Button>
 
             <Button
               type="button"
               variant="OUTLINE"
               size="SM"
-              className="w-full text-[0.62rem]"
+              className="w-full px-1 text-[0.56rem] tracking-tight"
               onClick={() => fileInputRef.current?.click()}
               title="Select multiple files using Ctrl / Shift in native file dialog"
             >
-              <Files size={11} className="mr-1 text-[var(--color-green)]" />
-              {files.length > 0 ? "+ FILES" : "MULTI-FILES"}
+              <Files size={10} className="mr-1 shrink-0 text-[var(--color-green)]" />
+              <span className="truncate">{files.length > 0 ? "+ FILES" : "FILES"}</span>
             </Button>
           </div>
 
