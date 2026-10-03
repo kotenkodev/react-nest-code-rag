@@ -6,7 +6,7 @@ import {
   Inject,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
-import { appConfig, type AppConfig } from '../../../config/app.config';
+import { appConfig, type AppConfig } from '../../config/app.config';
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
