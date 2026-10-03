@@ -5,7 +5,11 @@ import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
 import { appConfig } from './config/app.config';
 import { appConfigSchema } from './config/config.types';
-import { GlobalExceptionFilter } from './shared/types/shared/http-exception.filter';
+import { GlobalExceptionFilter } from './shared/filters/http-exception.filter';
+import { IngestionModule } from './modules/ingestion/ingestion.module';
+import { RagModule } from './modules/rag/rag.module';
+import { PrismaModule } from './modules/prisma/prisma.module';
+import { AiModule } from './modules/ai/ai.module';
 
 @Module({
   imports: [
@@ -14,6 +18,10 @@ import { GlobalExceptionFilter } from './shared/types/shared/http-exception.filt
       load: [appConfig],
       validationSchema: appConfigSchema,
     }),
+    IngestionModule,
+    RagModule,
+    PrismaModule,
+    AiModule,
   ],
   controllers: [AppController],
   providers: [
