@@ -1,30 +1,163 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { from, mergeMap } from 'rxjs';
+import AdmZip from 'adm-zip';
+
+export interface ExtractedFile {
+  path: string;
+  content: string;
+  size: number;
+}
 
 @Injectable()
 export class RepositoriesService {
-  constructor(private readonly PrismaService: PrismaService) {}
+  private readonly logger = new Logger(RepositoriesService.name);
+
+  constructor(private readonly prismaService: PrismaService) {}
+
+  buildGithubZipUrl(repoUrl: string, branch = 'main'): string {
+    const trimmed = repoUrl.trim();
+    if (trimmed.endsWith('.zip')) {
+      return trimmed;
+    }
+
+    const cleaned = trimmed.replace(/\.git$/, '').replace(/\/+$/, '');
+    const githubMatch = cleaned.match(
+      /^https?:\/\/(?:www\.)?github\.com\/([^\/]+)\/([^\/]+)/,
+    );
+
+    if (githubMatch) {
+      const [, owner, repo] = githubMatch;
+      return `https://github.com/${owner}/${repo}/archive/refs/heads/${branch}.zip`;
+    }
+
+    const shorthandMatch = cleaned.match(/^([a-zA-Z0-9_.-]+)\/([a-zA-Z0-9_.-]+)$/);
+    if (shorthandMatch) {
+      const [, owner, repo] = shorthandMatch;
+      return `https://github.com/${owner}/${repo}/archive/refs/heads/${branch}.zip`;
+    }
+
+    throw new BadRequestException('Invalid GitHub repository URL.');
+  }
+
+  async downloadGithubRepositoryZip(
+    repoUrl: string,
+    branch = 'main',
+  ): Promise<{ files: ExtractedFile[]; zipUrl: string }> {
+    const zipUrl = this.buildGithubZipUrl(repoUrl, branch);
+    this.logger.log(`Downloading repository ZIP from: ${zipUrl}`);
+
+    let response: Response;
+    try {
+      response = await fetch(zipUrl, {
+        method: 'GET',
+        headers: {
+          'User-Agent': 'Nest-Code-RAG-App',
+        },
+      });
+    } catch (error) {
+      throw new BadRequestException(
+        `Failed to reach GitHub: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+
+    if (!response.ok) {
+      throw new BadRequestException(
+        `Failed to download repository zip from GitHub (HTTP ${response.status} ${response.statusText}). Verify that repository and branch "${branch}" exist.`,
+      );
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const files = this.parseZipBuffer(buffer, true);
+
+    return { files, zipUrl };
+  }
+
+  extractUploadedFiles(files: Array<Express.Multer.File>): ExtractedFile[] {
+    const extracted: ExtractedFile[] = [];
+
+    for (const file of files) {
+      const isZip =
+        file.mimetype === 'application/zip' ||
+        file.mimetype === 'application/x-zip-compressed' ||
+        file.originalname.toLowerCase().endsWith('.zip');
+
+      if (isZip) {
+        const zipFiles = this.parseZipBuffer(file.buffer, false);
+        extracted.push(...zipFiles);
+      } else {
+        extracted.push({
+          path: file.originalname,
+          content: file.buffer ? file.buffer.toString('utf-8') : '',
+          size: file.size,
+        });
+      }
+    }
+
+    return extracted;
+  }
+
+  private parseZipBuffer(
+    buffer: Buffer,
+    isGithubArchive = false,
+  ): ExtractedFile[] {
+    try {
+      const zip = new AdmZip(buffer);
+      const entries = zip.getEntries();
+      const files: ExtractedFile[] = [];
+
+      for (const entry of entries) {
+        if (entry.isDirectory) continue;
+
+        let entryName = entry.entryName.replace(/\\/g, '/');
+
+        // GitHub archives wrap everything in a root "{repo}-{branch}/" directory
+        if (isGithubArchive) {
+          const firstSlash = entryName.indexOf('/');
+          if (firstSlash !== -1) {
+            entryName = entryName.substring(firstSlash + 1);
+          }
+        }
+
+        // Skip internal/hidden metadata files
+        if (
+          !entryName ||
+          entryName.startsWith('.git/') ||
+          entryName.includes('/.git/') ||
+          entryName.startsWith('__MACOSX/') ||
+          entryName.endsWith('.DS_Store')
+        ) {
+          continue;
+        }
+
+        try {
+          const content = entry.getData().toString('utf-8');
+          files.push({
+            path: entryName,
+            content,
+            size: entry.header.size,
+          });
+        } catch {
+          // If binary or unreadable as utf-8, preserve metadata with empty/placeholder content
+          files.push({
+            path: entryName,
+            content: '',
+            size: entry.header.size,
+          });
+        }
+      }
+
+      return files;
+    } catch (err) {
+      throw new BadRequestException(
+        `Failed to parse ZIP archive: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
 
   async cloneGithubRepository(url: string, branch: string) {
-    const filesTree = await fetch(`${url}/git/trees/${branch}?recursive=true`, {
-      method: 'GET',
-    });
-
-    const { tree } = await filesTree.json();
-
-    tree.forEach(async (node: any) => {
-      if (node.type === 'blob') {
-        const fileResponse = await fetch(node.url, {
-          method: 'GET',
-        });
-
-        const fileContent = await fileResponse.text();
-        console.log(fileContent);
-      }
-    });
-
-    return tree;
+    return this.downloadGithubRepositoryZip(url, branch);
   }
 
   getStatusObservable(email: string) {

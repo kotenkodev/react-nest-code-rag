@@ -15,7 +15,7 @@ import { map, Observable } from 'rxjs';
 import { RepositoriesService } from './repositories.service';
 import { UseGuards } from '@nestjs/common';
 import { AuthGuard } from '../../shared/guards/auth.guard';
-import { CurrentUser } from 'src/shared/decorators/current-user.decorator';
+import { CurrentUser } from '../../shared/decorators/current-user.decorator';
 
 @Controller('repositories')
 @UseGuards(AuthGuard)
@@ -24,32 +24,48 @@ export class RepositoriesController {
 
   @Post('upload')
   @UseInterceptors(FilesInterceptor('files', 500))
-  handleUpload(
+  async handleUpload(
     @CurrentUser() user,
     @Body() body: RepositoryLinkDto,
     @UploadedFiles(
       new ParseFilePipe({
-        validators: [new MaxFileSizeValidator({ maxSize: 2 * 1024 * 1024 })],
+        validators: [new MaxFileSizeValidator({ maxSize: 10 * 1024 * 1024 })],
         fileIsRequired: false,
       }),
     )
     files?: Array<Express.Multer.File>,
   ) {
     if (body.link) {
+      const { files: extractedFiles, zipUrl } =
+        await this.repositoriesService.downloadGithubRepositoryZip(
+          body.link,
+          body.branch || 'main',
+        );
+
       return {
         type: 'link',
-        message: `Successfully cloned ${body.link}.`,
-        paths: [body.link],
+        message: `Successfully downloaded and extracted repository from ${zipUrl}.`,
+        zipUrl,
+        fileCount: extractedFiles.length,
+        paths: extractedFiles.map((file) => file.path),
       };
     }
 
     if (files && files.length > 0) {
-      const uploadedPaths = files.map((file) => file.originalname);
+      const extractedFiles =
+        this.repositoriesService.extractUploadedFiles(files);
+      const isZipUpload = files.some(
+        (f) =>
+          f.mimetype === 'application/zip' ||
+          f.mimetype === 'application/x-zip-compressed' ||
+          f.originalname.toLowerCase().endsWith('.zip'),
+      );
 
       return {
-        type: 'folder',
-        message: `Successfully uploaded ${files.length} files.`,
-        paths: uploadedPaths,
+        type: isZipUpload ? 'zip' : 'folder',
+        message: `Successfully processed ${extractedFiles.length} files.`,
+        fileCount: extractedFiles.length,
+        paths: extractedFiles.map((file) => file.path),
       };
     }
 

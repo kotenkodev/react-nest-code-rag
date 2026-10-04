@@ -2,6 +2,7 @@ import {
   LogOut,
   Link2,
   Folder,
+  Archive,
   GitBranch,
   Search,
   ChevronRight,
@@ -26,7 +27,7 @@ export default function Workspace({
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState(false);
   const [activeSource, setActiveSource] = useState<{
-    type: "link" | "folder";
+    type: "link" | "folder" | "zip";
     value: string;
     fileCount?: number;
   }>({
@@ -88,6 +89,11 @@ export default function Workspace({
             <div className="mb-3 flex items-center gap-2 text-xs text-[var(--text-secondary)] font-mono truncate">
               {activeSource.type === "link" ? (
                 <Link2
+                  size={13}
+                  className="text-[var(--color-green)] shrink-0"
+                />
+              ) : activeSource.type === "zip" ? (
+                <Archive
                   size={13}
                   className="text-[var(--color-green)] shrink-0"
                 />

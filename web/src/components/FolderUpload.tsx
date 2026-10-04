@@ -1,6 +1,7 @@
 import {
   useState,
   useRef,
+  useMemo,
   type ChangeEvent,
   type FormEvent,
   type DragEvent,
@@ -8,7 +9,6 @@ import {
 import { Input } from "./ui/input/input";
 import { Button } from "./ui/button/button";
 import {
-  Link2,
   Folder,
   Upload,
   XCircle,
@@ -18,19 +18,29 @@ import {
   ArrowRight,
   FileCode,
   Files,
+  Archive,
+  DownloadCloud,
 } from "lucide-react";
 import axios from "@/lib/axios";
 
-const MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024; // 2MB per file
-const MAX_BATCH_SIZE_BYTES = 10 * 1024 * 1024; // 10MB total batch
+const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024; // 50MB per file/zip
+const MAX_BATCH_SIZE_BYTES = 100 * 1024 * 1024; // 100MB total batch
 
 export interface FolderUploadProps {
   onSourceSelected?: (source: {
-    type: "link" | "folder";
+    type: "link" | "folder" | "zip";
     value: string;
     fileCount?: number;
   }) => void;
   className?: string;
+}
+
+interface GroupedItem {
+  id: string;
+  name: string;
+  type: "folder" | "zip" | "file";
+  fileCount: number;
+  totalSize: number;
 }
 
 async function readEntryFiles(entry: any): Promise<File[]> {
@@ -71,39 +81,113 @@ export function FolderUpload({
   onSourceSelected,
   className = "",
 }: FolderUploadProps) {
-  const [activeTab, setActiveTab] = useState<"link" | "folder">("folder");
+  const [activeTab, setActiveTab] = useState<"link" | "folder">("link");
 
-  // Link state
-  const [repoUrl, setRepoUrl] = useState("");
+  // Git Repo Link state
+  const [repoUrl, setRepoUrl] = useState("https://github.com/kotenkodev/");
   const [branch, setBranch] = useState("main");
   const [linkStatus, setLinkStatus] = useState<
     "idle" | "loading" | "success" | "error"
   >("idle");
+  const [linkMessage, setLinkMessage] = useState("");
   const [linkError, setLinkError] = useState("");
 
-  // Folder & File upload state
+  // Folder, Multi-File, and Zip upload state
   const [files, setFiles] = useState<File[]>([]);
   const [folderError, setFolderError] = useState("");
+  const [folderMessage, setFolderMessage] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
 
   const folderInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const zipInputRef = useRef<HTMLInputElement>(null);
+
+  // Compute the expected GitHub Zip download URL preview
+  const previewZipUrl = useMemo(() => {
+    const trimmed = repoUrl.trim();
+    if (!trimmed || trimmed === "https://github.com/kotenkodev/") return "";
+    if (trimmed.endsWith(".zip")) return trimmed;
+
+    const cleaned = trimmed.replace(/\.git$/, "").replace(/\/+$/, "");
+    const githubMatch = cleaned.match(
+      /^https?:\/\/(?:www\.)?github\.com\/([^/]+)\/([^/]+)/,
+    );
+    if (githubMatch) {
+      const [, owner, repo] = githubMatch;
+      return `https://github.com/${owner}/${repo}/archive/refs/heads/${branch || "main"}.zip`;
+    }
+
+    const shorthandMatch = cleaned.match(/^([a-zA-Z0-9_.-]+)\/([a-zA-Z0-9_.-]+)$/);
+    if (shorthandMatch) {
+      const [, owner, repo] = shorthandMatch;
+      return `https://github.com/${owner}/${repo}/archive/refs/heads/${branch || "main"}.zip`;
+    }
+
+    return "";
+  }, [repoUrl, branch]);
 
   const totalSizeBytes = files.reduce((acc, f) => acc + f.size, 0);
   const formattedSize = (totalSizeBytes / (1024 * 1024)).toFixed(2);
 
-  const rootFolderNames = Array.from(
-    new Set(
-      files
-        .map((f) => f.webkitRelativePath?.split("/")[0] || f.name)
-        .filter(Boolean),
-    ),
-  );
+  // Group files into high-level items (folders, zip files, individual loose files)
+  const groupedItems = useMemo<GroupedItem[]>(() => {
+    const map = new Map<string, GroupedItem>();
+
+    for (const file of files) {
+      const isZip = file.name.toLowerCase().endsWith(".zip");
+      const relativePath = file.webkitRelativePath || file.name;
+      const isFolderChild = relativePath.includes("/");
+
+      if (isZip) {
+        const key = `zip:${file.name}`;
+        if (!map.has(key)) {
+          map.set(key, {
+            id: key,
+            name: file.name,
+            type: "zip",
+            fileCount: 1,
+            totalSize: file.size,
+          });
+        } else {
+          const item = map.get(key)!;
+          item.totalSize += file.size;
+        }
+      } else if (isFolderChild) {
+        const rootFolderName = relativePath.split("/")[0];
+        const key = `folder:${rootFolderName}`;
+        if (!map.has(key)) {
+          map.set(key, {
+            id: key,
+            name: rootFolderName,
+            type: "folder",
+            fileCount: 1,
+            totalSize: file.size,
+          });
+        } else {
+          const item = map.get(key)!;
+          item.fileCount += 1;
+          item.totalSize += file.size;
+        }
+      } else {
+        const key = `file:${file.name}`;
+        map.set(key, {
+          id: key,
+          name: file.name,
+          type: "file",
+          fileCount: 1,
+          totalSize: file.size,
+        });
+      }
+    }
+
+    return Array.from(map.values());
+  }, [files]);
 
   const processAndAddFiles = (newFiles: File[]) => {
     setFolderError("");
+    setFolderMessage("");
     setUploadSuccess(false);
 
     if (newFiles.length === 0) return;
@@ -120,13 +204,13 @@ export function FolderUpload({
       if (existingPaths.has(pathKey)) continue;
 
       if (file.size > MAX_FILE_SIZE_BYTES) {
-        setFolderError(`File "${file.name}" exceeds the 2MB limit.`);
+        setFolderError(`File "${file.name}" exceeds the 50MB limit.`);
         return;
       }
 
       currentTotalSize += file.size;
       if (currentTotalSize > MAX_BATCH_SIZE_BYTES) {
-        setFolderError("Total selection size exceeds the 10MB batch limit.");
+        setFolderError("Total selection exceeds 100MB batch limit.");
         return;
       }
 
@@ -137,11 +221,17 @@ export function FolderUpload({
     setFiles(combinedFiles);
   };
 
-  const removeFolderOrFile = (targetName: string) => {
+  const removeGroupedItem = (item: GroupedItem) => {
     setFiles((prevFiles) =>
       prevFiles.filter((file) => {
-        const rootName = file.webkitRelativePath?.split("/")[0] || file.name;
-        return rootName !== targetName;
+        if (item.type === "zip") {
+          return file.name !== item.name;
+        }
+        if (item.type === "folder") {
+          const rootName = file.webkitRelativePath?.split("/")[0];
+          return rootName !== item.name;
+        }
+        return file.name !== item.name;
       }),
     );
   };
@@ -191,6 +281,7 @@ export function FolderUpload({
     if (files.length === 0) return;
     setIsUploading(true);
     setFolderError("");
+    setFolderMessage("");
 
     const formData = new FormData();
     files.forEach((file) => {
@@ -198,60 +289,87 @@ export function FolderUpload({
     });
 
     try {
-      await axios.post("/api/upload", formData);
+      const response = await axios.post("/api/repositories/upload", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
 
       setIsUploading(false);
       setUploadSuccess(true);
+      const isZip = files.some((f) => f.name.toLowerCase().endsWith(".zip"));
+      const serverMsg = response.data?.message || "Uploaded successfully!";
+      setFolderMessage(serverMsg);
 
       const summaryName =
-        rootFolderNames.length > 1
-          ? `${rootFolderNames.length} Sources (${rootFolderNames.slice(0, 2).join(", ")}...)`
-          : rootFolderNames[0] || "Local Selection";
+        groupedItems.length > 1
+          ? `${groupedItems.length} Sources (${groupedItems.slice(0, 2).map((i) => i.name).join(", ")}...)`
+          : groupedItems[0]?.name || "Local Selection";
 
       onSourceSelected?.({
-        type: "folder",
+        type: isZip ? "zip" : "folder",
         value: summaryName,
-        fileCount: files.length,
+        fileCount: response.data?.fileCount || files.length,
       });
-    } catch (err) {
+    } catch (err: any) {
       setIsUploading(false);
-      setFolderError("Upload failed. Please check backend connection.");
+      const errDetail =
+        err.response?.data?.message ||
+        "Upload failed. Please verify the server connection.";
+      setFolderError(
+        typeof errDetail === "string" ? errDetail : JSON.stringify(errDetail),
+      );
     }
   };
 
   const handleLinkSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!repoUrl.trim()) {
-      setLinkError("Please enter a valid Git repository URL.");
+      setLinkError("Please enter a valid GitHub repository URL.");
       return;
     }
 
     setLinkError("");
+    setLinkMessage("");
     setLinkStatus("loading");
 
     try {
-      await axios.post("/api/repositories/upload", {
-        link: repoUrl,
-        branch,
+      const response = await axios.post("/api/repositories/upload", {
+        link: repoUrl.trim(),
+        branch: branch.trim() || "main",
       });
 
       setLinkStatus("success");
+      setLinkMessage(
+        response.data?.message ||
+          `Downloaded and indexed ${response.data?.fileCount || 0} files.`,
+      );
+
+      const repoTitle = repoUrl.trim().replace(/^https?:\/\/(www\.)?github\.com\//, "");
       onSourceSelected?.({
         type: "link",
-        value: repoUrl.trim(),
+        value: `${repoTitle} (${branch.trim() || "main"})`,
+        fileCount: response.data?.fileCount,
       });
-    } catch (err) {
+    } catch (err: any) {
       setLinkStatus("error");
-      setLinkError("Failed to index repository link.");
+      const errDetail =
+        err.response?.data?.message ||
+        "Failed to download repository ZIP archive from GitHub.";
+      setLinkError(
+        typeof errDetail === "string" ? errDetail : JSON.stringify(errDetail),
+      );
     }
   };
 
   const resetSelection = () => {
     setFiles([]);
     setFolderError("");
+    setFolderMessage("");
     setUploadSuccess(false);
     if (folderInputRef.current) folderInputRef.current.value = "";
     if (fileInputRef.current) fileInputRef.current.value = "";
+    if (zipInputRef.current) zipInputRef.current.value = "";
   };
 
   return (
@@ -261,53 +379,59 @@ export function FolderUpload({
       {/* Mode Toggle Header */}
       <div className="mb-3 border-b border-[var(--border)] pb-2">
         <div className="mb-2 text-[0.6rem] font-mono tracking-[0.16em] text-[var(--text-muted)] uppercase">
-          SOURCE CONFIGURATION
+          INGESTION SOURCE
         </div>
         <div className="grid grid-cols-2 gap-1.5">
           <button
             type="button"
             onClick={() => setActiveTab("link")}
-            className={`flex items-center justify-center gap-1 py-1 text-[0.62rem] font-mono transition-all ${
+            className={`flex items-center justify-center gap-1.5 py-1 text-[0.62rem] font-mono transition-all ${
               activeTab === "link"
                 ? "bg-[var(--surface-raised)] text-[var(--color-green)] border border-[var(--border-active)] font-medium"
                 : "text-[var(--text-muted)] hover:text-[var(--text-secondary)] border border-[var(--border)] bg-transparent"
             }`}
           >
-            <Link2 size={11} /> LINK
+            <DownloadCloud size={11} /> REPO ZIP LINK
           </button>
           <button
             type="button"
             onClick={() => setActiveTab("folder")}
-            className={`flex items-center justify-center gap-1 py-1 text-[0.62rem] font-mono transition-all ${
+            className={`flex items-center justify-center gap-1.5 py-1 text-[0.62rem] font-mono transition-all ${
               activeTab === "folder"
                 ? "bg-[var(--surface-raised)] text-[var(--color-green)] border border-[var(--border-active)] font-medium"
                 : "text-[var(--text-muted)] hover:text-[var(--text-secondary)] border border-[var(--border)] bg-transparent"
             }`}
           >
-            <Folder size={11} /> FOLDER
+            <Folder size={11} /> FOLDER / ZIP
           </button>
         </div>
       </div>
 
-      {/* Tab 1: GIT REPOSITORY LINK */}
+      {/* Tab 1: GIT REPOSITORY ZIP DOWNLOAD */}
       {activeTab === "link" && (
         <form onSubmit={handleLinkSubmit} className="space-y-3">
           <div>
             <Input
-              label="Repository URL"
-              placeholder="https://github.com/org/repo.git"
+              label="GitHub Repository"
+              placeholder="https://github.com/kotenkodev/reponame"
               value={repoUrl}
               onChange={(e) => {
                 setRepoUrl(e.target.value);
                 setLinkError("");
+                setLinkStatus("idle");
               }}
             />
           </div>
+
           <div className="grid grid-cols-2 gap-2">
             <Input
               label="Branch"
               value={branch}
-              onChange={(e) => setBranch(e.target.value)}
+              onChange={(e) => {
+                setBranch(e.target.value);
+                setLinkError("");
+                setLinkStatus("idle");
+              }}
               placeholder="main"
             />
             <div className="flex items-end">
@@ -318,28 +442,38 @@ export function FolderUpload({
                 className="w-full"
                 disabled={!repoUrl.trim() || linkStatus === "loading"}
               >
-                {linkStatus === "loading" ? "INDEXING..." : "INDEX LINK"}
+                {linkStatus === "loading" ? "DOWNLOADING..." : "DOWNLOAD & INDEX"}
                 <ArrowRight size={12} className="ml-1" />
               </Button>
             </div>
           </div>
 
+          {previewZipUrl && (
+            <div className="border border-[var(--border)] bg-[var(--surface-raised)] p-2 text-[0.58rem] font-mono text-[var(--text-muted)] leading-relaxed break-all">
+              <div className="text-[var(--color-green)] mb-0.5 flex items-center gap-1">
+                <Archive size={10} /> Zip Download URL:
+              </div>
+              <span className="text-[var(--text-secondary)]">{previewZipUrl}</span>
+            </div>
+          )}
+
           {linkError && (
-            <div className="flex items-center gap-1.5 text-[0.65rem] text-[var(--color-amber)] font-mono">
-              <AlertTriangle size={12} /> {linkError}
+            <div className="flex items-start gap-1.5 text-[0.62rem] text-[var(--color-amber)] font-mono">
+              <AlertTriangle size={12} className="shrink-0 mt-0.5" />
+              <span>{linkError}</span>
             </div>
           )}
 
           {linkStatus === "success" && (
-            <div className="flex items-center gap-1.5 text-[0.65rem] text-[var(--color-green)] font-mono">
-              <CheckCircle2 size={12} /> Repository linked & queued for
-              indexing.
+            <div className="flex items-start gap-1.5 text-[0.62rem] text-[var(--color-green)] font-mono">
+              <CheckCircle2 size={12} className="shrink-0 mt-0.5" />
+              <span>{linkMessage || "Repository downloaded & extracted successfully."}</span>
             </div>
           )}
         </form>
       )}
 
-      {/* Tab 2: LOCAL FOLDER / MULTI-FILE UPLOAD */}
+      {/* Tab 2: LOCAL FOLDER / ZIP / MULTI-FILE UPLOAD */}
       {activeTab === "folder" && (
         <div className="space-y-3">
           {/* Native Hidden Folder Picker Input */}
@@ -366,6 +500,17 @@ export function FolderUpload({
             onChange={handleFilesSelected}
           />
 
+          {/* Native Hidden Zip File Picker Input */}
+          <input
+            ref={zipInputRef}
+            type="file"
+            accept=".zip,application/zip,application/x-zip-compressed"
+            multiple
+            className="hidden"
+            id="zip-upload-input"
+            onChange={handleFilesSelected}
+          />
+
           {/* Drag & Drop Zone */}
           <div
             onDragOver={handleDragOver}
@@ -378,44 +523,56 @@ export function FolderUpload({
             }`}
           >
             <FolderPlus size={18} className="mb-1 text-[var(--color-green)]" />
-            <span className="text-[0.65rem] font-mono text-[var(--text-secondary)] font-medium uppercase">
-              {isDragging ? "DROP ITEMS HERE" : "DRAG & DROP FOLDERS OR FILES"}
+            <span className="text-[0.62rem] font-mono text-[var(--text-secondary)] font-medium uppercase">
+              {isDragging ? "DROP ITEMS HERE" : "DRAG & DROP FOLDER, ZIP, OR FILES"}
             </span>
           </div>
 
-          {/* Action Buttons: Add Folder vs Add Multi-Files */}
-          <div className="grid grid-cols-2 gap-1.5">
+          {/* Action Buttons: Add Folder, Add Zip, Add Files */}
+          <div className="grid grid-cols-3 gap-1">
             <Button
               type="button"
               variant="OUTLINE"
               size="SM"
-              className="w-full px-1 text-[0.56rem] tracking-tight"
+              className="w-full px-1 text-[0.54rem] tracking-tight"
               onClick={() => folderInputRef.current?.click()}
+              title="Select a directory with files"
             >
               <Folder
                 size={10}
                 className="mr-1 shrink-0 text-[var(--color-green)]"
               />
-              <span className="truncate">
-                {files.length > 0 ? "+ FOLDER" : "FOLDER"}
-              </span>
+              <span className="truncate">+ FOLDER</span>
             </Button>
 
             <Button
               type="button"
               variant="OUTLINE"
               size="SM"
-              className="w-full px-1 text-[0.56rem] tracking-tight"
+              className="w-full px-1 text-[0.54rem] tracking-tight"
+              onClick={() => zipInputRef.current?.click()}
+              title="Select a .zip archive"
+            >
+              <Archive
+                size={10}
+                className="mr-1 shrink-0 text-[var(--color-green)]"
+              />
+              <span className="truncate">+ ZIP</span>
+            </Button>
+
+            <Button
+              type="button"
+              variant="OUTLINE"
+              size="SM"
+              className="w-full px-1 text-[0.54rem] tracking-tight"
               onClick={() => fileInputRef.current?.click()}
-              title="Select multiple files using Ctrl / Shift in native file dialog"
+              title="Select multiple code files"
             >
               <Files
                 size={10}
                 className="mr-1 shrink-0 text-[var(--color-green)]"
               />
-              <span className="truncate">
-                {files.length > 0 ? "+ FILES" : "FILES"}
-              </span>
+              <span className="truncate">+ FILES</span>
             </Button>
           </div>
 
@@ -423,23 +580,40 @@ export function FolderUpload({
           {files.length > 0 && (
             <div className="space-y-2 border-t border-[var(--border)] pt-2.5">
               <div className="space-y-1 max-h-32 overflow-y-auto pr-1">
-                {rootFolderNames.map((name) => (
+                {groupedItems.map((item) => (
                   <div
-                    key={name}
-                    className="flex items-center justify-between border border-[var(--border)] bg-[var(--surface-raised)] px-2 py-1 text-[0.65rem] font-mono text-[var(--text-secondary)]"
+                    key={item.id}
+                    className="flex items-center justify-between border border-[var(--border)] bg-[var(--surface-raised)] px-2 py-1 text-[0.62rem] font-mono text-[var(--text-secondary)]"
                   >
                     <div className="flex items-center gap-1.5 truncate">
-                      <FileCode
-                        size={12}
-                        className="text-[var(--color-green)] shrink-0"
-                      />
-                      <span className="truncate">{name}</span>
+                      {item.type === "zip" ? (
+                        <Archive
+                          size={12}
+                          className="text-[var(--color-green)] shrink-0"
+                        />
+                      ) : item.type === "folder" ? (
+                        <Folder
+                          size={12}
+                          className="text-[var(--color-green)] shrink-0"
+                        />
+                      ) : (
+                        <FileCode
+                          size={12}
+                          className="text-[var(--color-green)] shrink-0"
+                        />
+                      )}
+                      <span className="truncate font-medium">{item.name}</span>
+                      <span className="text-[0.55rem] text-[var(--text-muted)] shrink-0">
+                        {item.type === "folder"
+                          ? `(${item.fileCount} files)`
+                          : `(${(item.totalSize / 1024).toFixed(1)} KB)`}
+                      </span>
                     </div>
                     <button
                       type="button"
-                      onClick={() => removeFolderOrFile(name)}
+                      onClick={() => removeGroupedItem(item)}
                       className="ml-2 text-[var(--text-muted)] hover:text-[var(--color-amber)] transition-colors p-0.5 shrink-0"
-                      title={`Remove ${name}`}
+                      title={`Remove ${item.name}`}
                     >
                       <XCircle size={12} />
                     </button>
@@ -449,7 +623,7 @@ export function FolderUpload({
 
               <div className="flex items-center justify-between text-[0.6rem] font-mono text-[var(--text-muted)] px-1">
                 <span>
-                  {files.length} files ({rootFolderNames.length} items)
+                  {files.length} total files ({groupedItems.length} items)
                 </span>
                 <span>{formattedSize} MB</span>
               </div>
@@ -473,21 +647,23 @@ export function FolderUpload({
                   className="flex-1 text-[0.62rem]"
                 >
                   <Upload size={11} className="mr-1" />
-                  {isUploading ? "UPLOADING..." : "UPLOAD"}
+                  {isUploading ? "UPLOADING..." : "UPLOAD & INDEX"}
                 </Button>
               </div>
             </div>
           )}
 
           {folderError && (
-            <div className="flex items-center gap-1.5 text-[0.65rem] text-[var(--color-amber)] font-mono">
-              <AlertTriangle size={12} /> {folderError}
+            <div className="flex items-start gap-1.5 text-[0.62rem] text-[var(--color-amber)] font-mono">
+              <AlertTriangle size={12} className="shrink-0 mt-0.5" />
+              <span>{folderError}</span>
             </div>
           )}
 
           {uploadSuccess && (
-            <div className="flex items-center gap-1.5 text-[0.65rem] text-[var(--color-green)] font-mono">
-              <CheckCircle2 size={12} /> Items uploaded successfully!
+            <div className="flex items-start gap-1.5 text-[0.62rem] text-[var(--color-green)] font-mono">
+              <CheckCircle2 size={12} className="shrink-0 mt-0.5" />
+              <span>{folderMessage || "Items uploaded and indexed successfully!"}</span>
             </div>
           )}
         </div>
