@@ -10,6 +10,7 @@ import { IngestionModule } from './modules/ingestion/ingestion.module';
 import { RagModule } from './modules/rag/rag.module';
 import { PrismaModule } from './modules/prisma/prisma.module';
 import { AiModule } from './modules/ai/ai.module';
+import { RepositoriesModule } from './modules/repositories/repositories.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { AiModule } from './modules/ai/ai.module';
     RagModule,
     PrismaModule,
     AiModule,
+    RepositoriesModule,
   ],
   controllers: [AppController],
   providers: [

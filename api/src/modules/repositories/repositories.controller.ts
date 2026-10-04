@@ -1,0 +1,65 @@
+import {
+  Body,
+  Controller,
+  MaxFileSizeValidator,
+  Param,
+  ParseFilePipe,
+  Post,
+  Sse,
+  UploadedFiles,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { RepositoryLinkDto } from './dto/repository-link.dto';
+import { map, Observable } from 'rxjs';
+import { RepositoriesService } from './repositories.service';
+import { UseGuards } from '@nestjs/common';
+import { AuthGuard } from '../../shared/guards/auth.guard';
+import { CurrentUser } from 'src/shared/decorators/current-user.decorator';
+
+@Controller('repositories')
+@UseGuards(AuthGuard)
+export class RepositoriesController {
+  constructor(private readonly repositoriesService: RepositoriesService) {}
+
+  @Post('upload')
+  @UseInterceptors(FilesInterceptor('files', 500))
+  handleUpload(
+    @CurrentUser() user,
+    @Body() body: RepositoryLinkDto,
+    @UploadedFiles(
+      new ParseFilePipe({
+        validators: [new MaxFileSizeValidator({ maxSize: 2 * 1024 * 1024 })],
+        fileIsRequired: false,
+      }),
+    )
+    files?: Array<Express.Multer.File>,
+  ) {
+    if (body.link) {
+      return {
+        type: 'link',
+        message: `Successfully cloned ${body.link}.`,
+        paths: [body.link],
+      };
+    }
+
+    if (files && files.length > 0) {
+      const uploadedPaths = files.map((file) => file.originalname);
+
+      return {
+        type: 'folder',
+        message: `Successfully uploaded ${files.length} files.`,
+        paths: uploadedPaths,
+      };
+    }
+
+    return { error: 'No link or files provided.' };
+  }
+
+  @Sse(':id/status')
+  streamStatus(@CurrentUser() user): Observable<{ data: any }> {
+    return this.repositoriesService
+      .getStatusObservable(user.email)
+      .pipe(map((progress) => ({ data: progress })));
+  }
+}

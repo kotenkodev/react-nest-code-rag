@@ -1,0 +1,51 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String      @id @default(uuid())
+  email      String      @unique
+  
+  repository Repository? 
+}
+
+enum RepositoryStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+ 
+model Repository {
+  id        String      @id @default(uuid())
+  name      String
+  url       String?
+
+  status    RepositoryStatus @default(PENDING)
+  processedFilesCount Int @default(0)
+  totalFilesCount Int @default(0)
+
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  chunks    CodeChunk[]
+}
+
+model CodeChunk {
+  id           String     @id @default(uuid())
+  repositoryId String
+  repository   Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  filePath     String
+  content      String     @db.Text
+  startLine    Int
+  endLine      Int
+  createdAt    DateTime   @default(now())
+
+  embedding    Unsupported("vector(1536)") 
+}
+
+ 
