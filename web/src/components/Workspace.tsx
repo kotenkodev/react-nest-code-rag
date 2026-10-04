@@ -6,7 +6,7 @@ import {
   Search,
   ChevronRight,
 } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import Logo from "./Logo";
 import { Button } from "./ui/button/button";
 import { Panel, PanelHeader, PanelTitle, PanelContent } from "./ui/panel/panel";
@@ -33,11 +33,32 @@ export default function Workspace({
     type: "link",
     value: "github.com/acme/platform",
   });
+  const [progress, setProgress] = useState({
+    status: "IDLE", // 'IDLE' | 'PROCESSING' | 'COMPLETED' | 'FAILED'
+    processedFilesCount: 0,
+    totalFilesCount: 0,
+  });
 
   function search(event: FormEvent) {
     event.preventDefault();
     if (question.trim()) setAnswer(true);
   }
+
+  useEffect(() => {
+    if (!email) return;
+    const eventSource = new EventSource(
+      `/api/repositories/status?email=${encodeURIComponent(email)}`
+    );
+    eventSource.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      // data: { status: 'PROCESSING', processedFilesCount: 45, totalFilesCount: 120 }
+      setProgress(data);
+      if (data.status === "COMPLETED" || data.status === "FAILED") {
+        eventSource.close();
+      }
+    };
+    return () => eventSource.close();
+  }, [email]);
 
   return (
     <main className="flex min-h-screen flex-col bg-[var(--background)]">
@@ -66,9 +87,15 @@ export default function Workspace({
             </div>
             <div className="mb-3 flex items-center gap-2 text-xs text-[var(--text-secondary)] font-mono truncate">
               {activeSource.type === "link" ? (
-                <Link2 size={13} className="text-[var(--color-green)] shrink-0" />
+                <Link2
+                  size={13}
+                  className="text-[var(--color-green)] shrink-0"
+                />
               ) : (
-                <Folder size={13} className="text-[var(--color-green)] shrink-0" />
+                <Folder
+                  size={13}
+                  className="text-[var(--color-green)] shrink-0"
+                />
               )}
               <span className="truncate">{activeSource.value}</span>
             </div>
@@ -95,12 +122,26 @@ export default function Workspace({
         <section className="min-w-0 p-5 md:p-8">
           <div className="mx-auto max-w-4xl">
             <div className="mb-8">
-              <Badge variant="ACTIVE">READY</Badge>
+              <Badge
+                variant={
+                  progress.status === "COMPLETED"
+                    ? "ACTIVE"
+                    : progress.status === "PROCESSING"
+                    ? "ACTIVE"
+                    : "OFFLINE"
+                }
+              >
+                {progress.status === "PROCESSING"
+                  ? `PROCESSING (${progress.processedFilesCount}/${progress.totalFilesCount})`
+                  : progress.status === "IDLE"
+                  ? "READY"
+                  : progress.status}
+              </Badge>
               <h1 className="mt-4 text-2xl text-[var(--text-secondary)] md:text-3xl">
                 ACME / PLATFORM
               </h1>
               <p className="mt-2 text-xs text-[var(--text-muted)]">
-                TypeScript web platform · 1,248 files · Indexed 2 minutes ago
+                TypeScript web platform · {progress.totalFilesCount || 1248} files · Ingestion active
               </p>
             </div>
 

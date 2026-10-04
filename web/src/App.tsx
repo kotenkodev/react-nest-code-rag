@@ -1,17 +1,12 @@
-import { useEffect, useState } from "react";
 import Workspace from "./components/Workspace";
 import Login from "./components/Login";
+import { useAuthStore } from "./store/store";
 
 export default function App() {
-  const [email, setEmail] = useState(() => localStorage.getItem("email") || "");
-
-  useEffect(() => {
-    if (email) localStorage.setItem("email", email);
-    else localStorage.removeItem("email");
-  }, [email]);
+  const { email, setEmail, clearEmail } = useAuthStore();
 
   return email ? (
-    <Workspace email={email} onLogout={() => setEmail("")} />
+    <Workspace email={email} onLogout={clearEmail} />
   ) : (
     <Login onLogin={setEmail} />
   );

@@ -19,6 +19,7 @@ import {
   FileCode,
   Files,
 } from "lucide-react";
+import axios from "@/lib/axios";
 
 const MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024; // 2MB per file
 const MAX_BATCH_SIZE_BYTES = 10 * 1024 * 1024; // 10MB total batch
@@ -197,10 +198,7 @@ export function FolderUpload({
     });
 
     try {
-      await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      }).catch(() => null);
+      await axios.post("/api/upload", formData);
 
       setIsUploading(false);
       setUploadSuccess(true);
@@ -232,7 +230,11 @@ export function FolderUpload({
     setLinkStatus("loading");
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      await axios.post("/api/repositories/upload", {
+        link: repoUrl,
+        branch,
+      });
+
       setLinkStatus("success");
       onSourceSelected?.({
         type: "link",
