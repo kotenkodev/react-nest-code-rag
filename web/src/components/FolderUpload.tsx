@@ -84,7 +84,9 @@ export function FolderUpload({
   const [activeTab, setActiveTab] = useState<"link" | "folder">("link");
 
   // Git Repo Link state
-  const [repoUrl, setRepoUrl] = useState("https://github.com/kotenkodev/");
+  const [repoUrl, setRepoUrl] = useState(
+    "https://github.com/kotenkodev/react-nest-ai-pdf-rag",
+  );
   const [branch, setBranch] = useState("main");
   const [linkStatus, setLinkStatus] = useState<
     "idle" | "loading" | "success" | "error"
@@ -119,7 +121,9 @@ export function FolderUpload({
       return `https://github.com/${owner}/${repo}/archive/refs/heads/${branch || "main"}.zip`;
     }
 
-    const shorthandMatch = cleaned.match(/^([a-zA-Z0-9_.-]+)\/([a-zA-Z0-9_.-]+)$/);
+    const shorthandMatch = cleaned.match(
+      /^([a-zA-Z0-9_.-]+)\/([a-zA-Z0-9_.-]+)$/,
+    );
     if (shorthandMatch) {
       const [, owner, repo] = shorthandMatch;
       return `https://github.com/${owner}/${repo}/archive/refs/heads/${branch || "main"}.zip`;
@@ -303,7 +307,10 @@ export function FolderUpload({
 
       const summaryName =
         groupedItems.length > 1
-          ? `${groupedItems.length} Sources (${groupedItems.slice(0, 2).map((i) => i.name).join(", ")}...)`
+          ? `${groupedItems.length} Sources (${groupedItems
+              .slice(0, 2)
+              .map((i) => i.name)
+              .join(", ")}...)`
           : groupedItems[0]?.name || "Local Selection";
 
       onSourceSelected?.({
@@ -345,7 +352,9 @@ export function FolderUpload({
           `Downloaded and indexed ${response.data?.fileCount || 0} files.`,
       );
 
-      const repoTitle = repoUrl.trim().replace(/^https?:\/\/(www\.)?github\.com\//, "");
+      const repoTitle = repoUrl
+        .trim()
+        .replace(/^https?:\/\/(www\.)?github\.com\//, "");
       onSourceSelected?.({
         type: "link",
         value: `${repoTitle} (${branch.trim() || "main"})`,
@@ -381,28 +390,30 @@ export function FolderUpload({
         <div className="mb-2 text-[0.6rem] font-mono tracking-[0.16em] text-[var(--text-muted)] uppercase">
           INGESTION SOURCE
         </div>
-        <div className="grid grid-cols-2 gap-1.5">
+        <div className="grid grid-cols-2 gap-1">
           <button
             type="button"
             onClick={() => setActiveTab("link")}
-            className={`flex items-center justify-center gap-1.5 py-1 text-[0.62rem] font-mono transition-all ${
+            className={`flex items-center justify-center gap-1 px-1 py-1.5 text-[0.58rem] sm:text-[0.62rem] font-mono transition-all min-w-0 ${
               activeTab === "link"
                 ? "bg-[var(--surface-raised)] text-[var(--color-green)] border border-[var(--border-active)] font-medium"
                 : "text-[var(--text-muted)] hover:text-[var(--text-secondary)] border border-[var(--border)] bg-transparent"
             }`}
           >
-            <DownloadCloud size={11} /> REPO ZIP LINK
+            <DownloadCloud size={11} className="shrink-0" />
+            <span className="truncate">REPO LINK</span>
           </button>
           <button
             type="button"
             onClick={() => setActiveTab("folder")}
-            className={`flex items-center justify-center gap-1.5 py-1 text-[0.62rem] font-mono transition-all ${
+            className={`flex items-center justify-center gap-1 px-1 py-1.5 text-[0.58rem] sm:text-[0.62rem] font-mono transition-all min-w-0 ${
               activeTab === "folder"
                 ? "bg-[var(--surface-raised)] text-[var(--color-green)] border border-[var(--border-active)] font-medium"
                 : "text-[var(--text-muted)] hover:text-[var(--text-secondary)] border border-[var(--border)] bg-transparent"
             }`}
           >
-            <Folder size={11} /> FOLDER / ZIP
+            <Folder size={11} className="shrink-0" />
+            <span className="truncate">FOLDER / ZIP</span>
           </button>
         </div>
       </div>
@@ -423,7 +434,7 @@ export function FolderUpload({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-2">
             <Input
               label="Branch"
               value={branch}
@@ -434,26 +445,30 @@ export function FolderUpload({
               }}
               placeholder="main"
             />
-            <div className="flex items-end">
-              <Button
-                type="submit"
-                variant="EXEC"
-                size="SM"
-                className="w-full"
-                disabled={!repoUrl.trim() || linkStatus === "loading"}
-              >
-                {linkStatus === "loading" ? "DOWNLOADING..." : "DOWNLOAD & INDEX"}
-                <ArrowRight size={12} className="ml-1" />
-              </Button>
-            </div>
+            <Button
+              type="submit"
+              variant="EXEC"
+              size="SM"
+              className="w-full text-[0.6rem] sm:text-[0.65rem] py-1.5"
+              disabled={!repoUrl.trim() || linkStatus === "loading"}
+            >
+              <span className="truncate">
+                {linkStatus === "loading"
+                  ? "DOWNLOADING..."
+                  : "DOWNLOAD & INDEX ZIP"}
+              </span>
+              <ArrowRight size={12} className="ml-1 shrink-0" />
+            </Button>
           </div>
 
           {previewZipUrl && (
             <div className="border border-[var(--border)] bg-[var(--surface-raised)] p-2 text-[0.58rem] font-mono text-[var(--text-muted)] leading-relaxed break-all">
               <div className="text-[var(--color-green)] mb-0.5 flex items-center gap-1">
-                <Archive size={10} /> Zip Download URL:
+                <Archive size={10} className="shrink-0" /> Zip Download URL:
               </div>
-              <span className="text-[var(--text-secondary)]">{previewZipUrl}</span>
+              <span className="text-[var(--text-secondary)]">
+                {previewZipUrl}
+              </span>
             </div>
           )}
 
@@ -467,7 +482,10 @@ export function FolderUpload({
           {linkStatus === "success" && (
             <div className="flex items-start gap-1.5 text-[0.62rem] text-[var(--color-green)] font-mono">
               <CheckCircle2 size={12} className="shrink-0 mt-0.5" />
-              <span>{linkMessage || "Repository downloaded & extracted successfully."}</span>
+              <span>
+                {linkMessage ||
+                  "Repository downloaded & extracted successfully."}
+              </span>
             </div>
           )}
         </form>
@@ -524,7 +542,9 @@ export function FolderUpload({
           >
             <FolderPlus size={18} className="mb-1 text-[var(--color-green)]" />
             <span className="text-[0.62rem] font-mono text-[var(--text-secondary)] font-medium uppercase">
-              {isDragging ? "DROP ITEMS HERE" : "DRAG & DROP FOLDER, ZIP, OR FILES"}
+              {isDragging
+                ? "DROP ITEMS HERE"
+                : "DRAG & DROP FOLDER, ZIP, OR FILES"}
             </span>
           </div>
 
@@ -663,7 +683,9 @@ export function FolderUpload({
           {uploadSuccess && (
             <div className="flex items-start gap-1.5 text-[0.62rem] text-[var(--color-green)] font-mono">
               <CheckCircle2 size={12} className="shrink-0 mt-0.5" />
-              <span>{folderMessage || "Items uploaded and indexed successfully!"}</span>
+              <span>
+                {folderMessage || "Items uploaded and indexed successfully!"}
+              </span>
             </div>
           )}
         </div>
