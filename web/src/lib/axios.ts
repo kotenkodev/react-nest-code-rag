@@ -7,7 +7,7 @@ const axios = axiosInstance.create({
 
 axios.interceptors.request.use(
   (config) => {
-    const email = useAuthStore.getState().email;
+    const email = useAuthStore.getState().user?.email;
 
     if (email) {
       config.headers["x-user-email"] = email;

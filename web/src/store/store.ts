@@ -1,25 +1,40 @@
 import { createJSONStorage, persist } from "zustand/middleware";
 import { create } from "zustand";
 
+type User = {
+  email: string;
+};
+
 type AuthState = {
-  email: string | null;
-  setEmail: (email: string) => void;
-  clearEmail: () => void;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  user: User | null;
+  setUser: (user: User) => void;
+  clearUser: () => void;
 };
 
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
-      email: "",
+      user: null,
+      isAuthenticated: false,
+      isLoading: true,
 
-      setEmail: (email) => set({ email }),
-      clearEmail: () => set({ email: "" }),
+      setUser: (user) => set({ user, isAuthenticated: true, isLoading: false }),
+      clearUser: () =>
+        set({ user: null, isAuthenticated: false, isLoading: false }),
     }),
     {
-      name: "user-email-storage",
+      name: "user-storage",
       storage: createJSONStorage(() => localStorage),
-
-      partialize: (state) => ({ email: state.email }),
+      partialize: (state) => ({ user: state.user }),
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state.isAuthenticated = !!state.user;
+          state.isLoading = false;
+        }
+      },
     },
   ),
 );
+

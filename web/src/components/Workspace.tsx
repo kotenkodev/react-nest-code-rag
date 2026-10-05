@@ -1,29 +1,18 @@
-import {
-  LogOut,
-  Link2,
-  Folder,
-  Archive,
-  GitBranch,
-  Search,
-  SlidersHorizontal,
-} from "lucide-react";
+import { Search, SlidersHorizontal } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import Logo from "./Logo";
 import { Button } from "./ui/button/button";
 import { Badge } from "./ui/badge/badge";
 import { Textarea } from "./ui/textarea/textarea";
+import ChatMessage from "./ChatMessage";
+import { RepositoryStatus } from "@/types/repository-status.type";
+import { useApiStatus } from "@/hooks/useApiStatus";
+import { useConversation } from "@/hooks/useConversation";
+import Sidebar from "./Sidebar";
+import { useAuthStore } from "@/store/store";
 
-import { FolderUpload } from "./FolderUpload";
-import Message from "./Message";
-import { RepositoryStatus } from "@/types/repository-staus.types";
-
-export default function Workspace({
-  email,
-  onLogout,
-}: {
-  email: string;
-  onLogout: () => void;
-}) {
+export default function Workspace() {
+  const { user } = useAuthStore();
+  const email = user?.email;
   const [mobileTab, setMobileTab] = useState<"search" | "sources">("search");
   const [question, setQuestion] = useState("");
   const [, setAnswer] = useState(false);
@@ -44,6 +33,9 @@ export default function Workspace({
     processedFilesCount: 0,
     totalFilesCount: 0,
   });
+  const { isOnline, isPending } = useApiStatus();
+
+  const { messages } = useConversation();
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -72,26 +64,8 @@ export default function Workspace({
   }, [email]);
 
   return (
-    <main className="flex h-screen max-h-screen flex-col overflow-hidden bg-[var(--background)]">
+    <main className="flex flex-1 min-h-0 flex-col overflow-hidden bg-[var(--background)]">
       {/* Top Header */}
-      <header className="flex h-14 sm:h-16 shrink-0 items-center border-b border-[var(--border)] bg-[var(--surface)] px-3 sm:px-5 z-10">
-        <Logo />
-        <div className="ml-auto flex items-center gap-2 sm:gap-3">
-          <span className="hidden text-[0.65rem] text-[var(--text-muted)] sm:inline-block max-w-[160px] md:max-w-[240px] truncate">
-            {email}
-          </span>
-          <Button
-            variant="GHOST"
-            size="SM"
-            onClick={onLogout}
-            aria-label="Log out"
-            className="p-1.5 sm:px-2.5"
-          >
-            <LogOut size={13} className="shrink-0" />
-            <span className="hidden xs:inline text-[0.62rem]">LOGOUT</span>
-          </Button>
-        </div>
-      </header>
 
       {/* Mobile Tab Switcher (Visible on screens < md) */}
       <div className="flex md:hidden shrink-0 border-b border-[var(--border)] bg-[var(--surface)] p-1.5 gap-1.5 z-10">
@@ -121,60 +95,13 @@ export default function Workspace({
         </button>
       </div>
 
-      <div className="grid flex-1 min-h-0 md:grid-cols-[280px_minmax(0,1fr)] lg:grid-cols-[300px_minmax(0,1fr)] overflow-hidden">
+      <div className="grid flex-1 min-h-0 md:grid-cols-[340px_minmax(0,1fr)] lg:grid-cols-[380px_minmax(0,1fr)] xl:grid-cols-[420px_minmax(0,1fr)] overflow-hidden">
         {/* Sidebar / Ingestion Panel */}
-        <aside
-          className={`border-r border-[var(--border)] bg-[var(--surface)] h-full overflow-y-auto ${
-            mobileTab === "sources"
-              ? "flex flex-col"
-              : "hidden md:flex md:flex-col"
-          }`}
-        >
-          <div className="border-b border-[var(--border)] p-3 sm:p-4">
-            <div className="mb-2 text-[0.6rem] tracking-[0.16em] text-[var(--text-muted)] font-mono">
-              ACTIVE SOURCE
-            </div>
-            <div className="mb-3 flex items-center gap-2 text-xs text-[var(--text-secondary)] font-mono min-w-0">
-              {activeSource.type === "link" ? (
-                <Link2
-                  size={13}
-                  className="text-[var(--color-green)] shrink-0"
-                />
-              ) : activeSource.type === "zip" ? (
-                <Archive
-                  size={13}
-                  className="text-[var(--color-green)] shrink-0"
-                />
-              ) : (
-                <Folder
-                  size={13}
-                  className="text-[var(--color-green)] shrink-0"
-                />
-              )}
-              <span className="truncate font-medium">{activeSource.value}</span>
-            </div>
-
-            <FolderUpload
-              onSourceSelected={(source) => {
-                setActiveSource(source);
-              }}
-              className="mt-2"
-            />
-          </div>
-
-          <div className="flex h-10 sm:h-11 shrink-0 items-center border-b border-[var(--border)] px-3 sm:px-4">
-            <GitBranch
-              size={13}
-              className="text-[var(--color-green)] shrink-0"
-            />
-            <span className="ml-2 text-[0.65rem] text-[var(--text-secondary)] font-mono truncate">
-              main
-            </span>
-            <Badge variant="OFFLINE" className="ml-auto text-[0.6rem]">
-              {RepositoryStatus.IDLE}
-            </Badge>
-          </div>
-        </aside>
+        <Sidebar
+          mobileTab={mobileTab}
+          activeSource={activeSource}
+          onSourceSelected={setActiveSource}
+        />
 
         {/* Main Workspace Section */}
         <section
@@ -196,10 +123,16 @@ export default function Workspace({
 
               <div className="flex flex-wrap items-center gap-2">
                 <Badge
-                  variant="SCANNING"
+                  variant={
+                    isPending ? "OFFLINE" : isOnline ? "SCANNING" : "CRITICAL"
+                  }
                   className="text-[0.6rem] font-mono hidden sm:inline-flex"
                 >
-                  RAG ENGINE ACTIVE
+                  {isPending
+                    ? "RAG ENGINE CHECKING..."
+                    : isOnline
+                      ? "RAG ENGINE ACTIVE"
+                      : "RAG ENGINE INACTIVE"}
                 </Badge>
                 <Badge
                   variant={
@@ -224,35 +157,9 @@ export default function Workspace({
           {/* Scrollable Messages Stream */}
           <div className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-5 md:p-6 space-y-4">
             <div className="mx-auto max-w-4xl">
-              <Message
-                type="ask"
-                text={
-                  "Authentication is implemented The API route creates the session, while middlewar validates the signed token for protected requests."
-                }
-                sources={[]}
-              />
-              <Message
-                type="answer"
-                text={
-                  "Authentication is implemented The API route creates the session, while middlewar validates the signed token for protected requests."
-                }
-                sources={[
-                  "src/lib/auth.ts:12",
-                  "src/middleware.ts:8",
-                  "src/app/api/auth/route.ts:5",
-                ]}
-              />
-              <Message
-                type="answer"
-                text={
-                  "Authentication is implemented The API route creates the session, while middlewar validates the signed token for protected requests."
-                }
-                sources={[
-                  "src/lib/auth.ts:12",
-                  "src/middleware.ts:8",
-                  "src/app/api/auth/route.ts:5",
-                ]}
-              />
+              {messages.map((message) => (
+                <ChatMessage message={message} key={message.id} />
+              ))}
               <div ref={messagesEndRef} />
             </div>
           </div>

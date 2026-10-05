@@ -5,17 +5,18 @@ import { Badge } from "./ui/badge/badge";
 import { Button } from "./ui/button/button";
 import { ArrowRight } from "lucide-react";
 import { Input } from "./ui/input/input";
+import { useNavigate } from "react-router-dom";
+import { useAuthStore } from "@/store/store";
 
-export default function Login({
-  onLogin,
-}: {
-  onLogin: (email: string) => void;
-}) {
+export default function Login() {
+  const navigate = useNavigate();
+  const setUser = useAuthStore((state) => state.setUser);
   const [email, setEmail] = useState("");
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    if (email.trim()) onLogin(email.trim().toLowerCase());
+    if (email.trim()) setUser({ email: email.trim().toLowerCase() });
+    navigate("/");
   }
 
   return (

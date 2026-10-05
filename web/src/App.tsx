@@ -1,13 +1,21 @@
 import Workspace from "./components/Workspace";
 import Login from "./components/Login";
-import { useAuthStore } from "./store/store";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import ProtectedRoute from "./components/ProtectedRoute";
+import Layout from "./components/Layout";
 
 export default function App() {
-  const { email, setEmail, clearEmail } = useAuthStore();
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route element={<ProtectedRoute />}>
+          <Route element={<Layout />}>
+            <Route path="/" element={<Workspace />} />
+          </Route>
+        </Route>
 
-  return email ? (
-    <Workspace email={email} onLogout={clearEmail} />
-  ) : (
-    <Login onLogin={setEmail} />
+        <Route path="/login" element={<Login />} />
+      </Routes>
+    </BrowserRouter>
   );
 }

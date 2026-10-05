@@ -3,16 +3,15 @@ import Markdown from "react-markdown";
 import { Badge } from "./ui/badge/badge";
 import { Panel, PanelContent, PanelHeader, PanelTitle } from "./ui/panel/panel";
 import { cn } from "@/lib/utils";
+import type { ChatMessage } from "@/types/message.type";
 
-interface MessageProps {
-  type: "ask" | "answer";
-  text: string;
-  sources?: string[];
+interface ChatMessageProps {
+  message: ChatMessage;
   className?: string;
 }
 
-export default function Message({ text, sources, type, className }: MessageProps) {
-  const isUser = type === "ask";
+export default function ChatMessage({ message, className }: ChatMessageProps) {
+  const isUser = message.isUser;
 
   return (
     <Panel
@@ -22,13 +21,15 @@ export default function Message({ text, sources, type, className }: MessageProps
         isUser
           ? "border-[var(--border)] bg-[var(--surface)]/70 border-l-[3px] border-l-[var(--text-muted)]"
           : "border-[var(--border)] bg-[var(--surface)] border-l-[3px] border-l-[var(--color-green)] shadow-[0_0_15px_-3px_rgba(0,237,63,0.07)]",
-        className
+        className,
       )}
     >
       <PanelHeader
         className={cn(
           "px-3 sm:px-4 py-2 flex items-center justify-between",
-          isUser ? "bg-[var(--surface-raised)]/60" : "bg-[var(--surface-raised)]"
+          isUser
+            ? "bg-[var(--surface-raised)]/60"
+            : "bg-[var(--surface-raised)]",
         )}
       >
         <div className="flex items-center gap-2">
@@ -45,7 +46,9 @@ export default function Message({ text, sources, type, className }: MessageProps
           <PanelTitle
             className={cn(
               "text-[0.68rem] sm:text-xs font-mono tracking-wider",
-              isUser ? "text-[var(--text-secondary)]" : "text-[var(--color-green)]"
+              isUser
+                ? "text-[var(--text-secondary)]"
+                : "text-[var(--color-green)]",
             )}
           >
             {isUser ? "USER QUERY" : "RAG RESPONSE"}
@@ -56,23 +59,21 @@ export default function Message({ text, sources, type, className }: MessageProps
           <Badge variant="OFFLINE" className="text-[0.58rem] font-mono">
             PROMPT
           </Badge>
+        ) : message.isError ? (
+          <Badge variant="WARNING" className="text-[0.58rem] font-mono">
+            ERROR
+          </Badge>
         ) : (
-          sources && sources.length > 0 ? (
-            <Badge variant="ACTIVE" className="text-[0.58rem] font-mono">
-              {sources.length} {sources.length === 1 ? "SOURCE" : "SOURCES"}
-            </Badge>
-          ) : (
-            <Badge variant="ACTIVE" className="text-[0.58rem] font-mono">
-              GENERATED
-            </Badge>
-          )
+          <Badge variant="ACTIVE" className="text-[0.58rem] font-mono">
+            GENERATED
+          </Badge>
         )}
       </PanelHeader>
 
       <PanelContent className="space-y-3.5 p-3 sm:p-4 text-[0.75rem] sm:text-xs leading-relaxed">
         {isUser ? (
           <p className="text-[var(--text-secondary)] whitespace-pre-wrap font-sans font-normal">
-            {text}
+            {message.text}
           </p>
         ) : (
           <div className="text-[var(--text-secondary)] space-y-2 prose-sm max-w-none">
@@ -84,7 +85,10 @@ export default function Message({ text, sources, type, className }: MessageProps
                   </p>
                 ),
                 code: ({ className, children, ...props }) => {
-                  const isInline = !className && typeof children === "string" && !children.includes("\n");
+                  const isInline =
+                    !className &&
+                    typeof children === "string" &&
+                    !children.includes("\n");
                   return isInline ? (
                     <code
                       className="px-1.5 py-0.5 font-mono text-[0.72rem] bg-[var(--surface-raised)] text-[var(--color-green)] border border-[var(--border)]"
@@ -112,19 +116,19 @@ export default function Message({ text, sources, type, className }: MessageProps
                 ),
               }}
             >
-              {text}
+              {message.text}
             </Markdown>
           </div>
         )}
 
-        {!isUser && sources && sources.length > 0 && (
+        {!isUser && message.sources && message.sources.length > 0 && (
           <div className="pt-2.5 border-t border-[var(--border)]">
             <div className="flex items-center gap-1.5 text-[0.6rem] font-mono text-[var(--text-muted)] uppercase tracking-wider mb-2">
               <FileCode2 size={11} className="text-[var(--color-green)]" />
               <span>Referenced Sources</span>
             </div>
             <div className="flex flex-wrap gap-1.5 sm:gap-2">
-              {sources.map((source) => (
+              {message.sources?.map((source) => (
                 <Badge
                   key={source}
                   variant="ACTIVE"
@@ -140,4 +144,3 @@ export default function Message({ text, sources, type, className }: MessageProps
     </Panel>
   );
 }
-
