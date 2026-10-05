@@ -1,6 +1,5 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { from, map, Observable } from 'rxjs';
 import AdmZip from 'adm-zip';
 import { Repository, RepositoryStatus } from '@prisma/client';
 
@@ -210,7 +209,6 @@ export class RepositoriesService {
 
         let entryName = entry.entryName.replace(/\\/g, '/');
 
-        // GitHub archives wrap everything in a root "{repo}-{branch}/" directory
         if (isGithubArchive) {
           const firstSlash = entryName.indexOf('/');
           if (firstSlash !== -1) {
@@ -218,7 +216,6 @@ export class RepositoriesService {
           }
         }
 
-        // Skip internal/hidden metadata files
         if (
           !entryName ||
           entryName.startsWith('.git/') ||
@@ -237,7 +234,6 @@ export class RepositoriesService {
             size: entry.header.size,
           });
         } catch {
-          // If binary or unreadable as utf-8, preserve metadata with empty/placeholder content
           files.push({
             path: entryName,
             content: '',
@@ -258,19 +254,17 @@ export class RepositoriesService {
     return this.downloadGithubRepositoryZip(url, branch);
   }
 
-  getStatusObservable(email: string): Observable<RepositoryProgressStatus> {
-    return from(
-      this.prismaService.user.findUnique({
-        where: { email },
-        include: { repository: true },
-      }),
-    ).pipe(
-      map((user) => ({
-        status: user?.repository?.status || 'IDLE',
-        processedFilesCount: user?.repository?.processedFilesCount || 0,
-        totalFilesCount: user?.repository?.totalFilesCount || 0,
-        errorMessage: user?.repository?.errorMessage || '',
-      })),
-    );
+  async getStatus(email: string): Promise<RepositoryProgressStatus> {
+    const userRecord = await this.prismaService.user.findUnique({
+      where: { email },
+      include: { repository: true },
+    });
+
+    return {
+      status: userRecord?.repository?.status || 'IDLE',
+      processedFilesCount: userRecord?.repository?.processedFilesCount || 0,
+      totalFilesCount: userRecord?.repository?.totalFilesCount || 0,
+      errorMessage: userRecord?.repository?.errorMessage || '',
+    };
   }
 }

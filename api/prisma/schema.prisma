@@ -18,9 +18,8 @@ repository   Repository? @relation(fields: [repositoryId], references: [id], onD
 }
 
 enum RepositoryStatus {
+  SUCCESS
   PENDING
-  PROCESSING
-  COMPLETED
   FAILED
 }
 

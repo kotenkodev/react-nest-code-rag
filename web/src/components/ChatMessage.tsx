@@ -19,26 +19,24 @@ export default function ChatMessage({ message, className }: ChatMessageProps) {
       className={cn(
         "mb-4 transition-all duration-200",
         isUser
-          ? "border-[var(--border)] bg-[var(--surface)]/70 border-l-[3px] border-l-[var(--text-muted)]"
-          : "border-[var(--border)] bg-[var(--surface)] border-l-[3px] border-l-[var(--color-green)] shadow-[0_0_15px_-3px_rgba(0,237,63,0.07)]",
+          ? "border-(--border) bg-(--surface)/70 border-l-[3px] border-l-(--text-muted)"
+          : "border-(--border) bg-(--surface) border-l-[3px] border-l-green shadow-[0_0_15px_-3px_rgba(0,237,63,0.07)]",
         className,
       )}
     >
       <PanelHeader
         className={cn(
           "px-3 sm:px-4 py-2 flex items-center justify-between",
-          isUser
-            ? "bg-[var(--surface-raised)]/60"
-            : "bg-[var(--surface-raised)]",
+          isUser ? "bg-(--surface-raised)/60" : "bg-(--surface-raised)",
         )}
       >
         <div className="flex items-center gap-2">
           {isUser ? (
-            <div className="flex items-center justify-center w-5 h-5 rounded-none bg-[var(--surface)] border border-[var(--border)] text-[var(--text-muted)]">
+            <div className="flex items-center justify-center w-5 h-5 rounded-none bg-(--surface) border border-[var(--border)] text-[var(--text-muted)]">
               <User size={12} />
             </div>
           ) : (
-            <div className="flex items-center justify-center w-5 h-5 rounded-none bg-[var(--color-green)]/10 border border-[var(--color-green)] text-[var(--color-green)]">
+            <div className="flex items-center justify-center w-5 h-5 rounded-none bg-green/10 border border-[var(--color-green)] text-[var(--color-green)]">
               <Sparkles size={12} />
             </div>
           )}
@@ -46,9 +44,7 @@ export default function ChatMessage({ message, className }: ChatMessageProps) {
           <PanelTitle
             className={cn(
               "text-[0.68rem] sm:text-xs font-mono tracking-wider",
-              isUser
-                ? "text-[var(--text-secondary)]"
-                : "text-[var(--color-green)]",
+              isUser ? "text-(--text-secondary)" : "text-green",
             )}
           >
             {isUser ? "USER QUERY" : "RAG RESPONSE"}
@@ -72,15 +68,15 @@ export default function ChatMessage({ message, className }: ChatMessageProps) {
 
       <PanelContent className="space-y-3.5 p-3 sm:p-4 text-[0.75rem] sm:text-xs leading-relaxed">
         {isUser ? (
-          <p className="text-[var(--text-secondary)] whitespace-pre-wrap font-sans font-normal">
+          <p className="text-(--text-secondary) whitespace-pre-wrap font-sans font-normal">
             {message.text}
           </p>
         ) : (
-          <div className="text-[var(--text-secondary)] space-y-2 prose-sm max-w-none">
+          <div className="text-(--text-secondary) space-y-2 prose-sm max-w-none">
             <Markdown
               components={{
                 p: ({ children }) => (
-                  <p className="text-[var(--text-secondary)] leading-relaxed mb-2 last:mb-0">
+                  <p className="text-(--text-secondary) leading-relaxed mb-2 last:mb-0">
                     {children}
                   </p>
                 ),
@@ -91,7 +87,7 @@ export default function ChatMessage({ message, className }: ChatMessageProps) {
                     !children.includes("\n");
                   return isInline ? (
                     <code
-                      className="px-1.5 py-0.5 font-mono text-[0.72rem] bg-[var(--surface-raised)] text-[var(--color-green)] border border-[var(--border)]"
+                      className="px-1.5 py-0.5 font-mono text-[0.72rem] bg-(--surface-raised) text-[var(--color-green)] border border-[var(--border)]"
                       {...props}
                     >
                       {children}
@@ -105,12 +101,12 @@ export default function ChatMessage({ message, className }: ChatMessageProps) {
                   );
                 },
                 ul: ({ children }) => (
-                  <ul className="list-disc pl-4 space-y-1 my-2 text-[var(--text-secondary)]">
+                  <ul className="list-disc pl-4 space-y-1 my-2 text-(--text-secondary)">
                     {children}
                   </ul>
                 ),
                 ol: ({ children }) => (
-                  <ol className="list-decimal pl-4 space-y-1 my-2 text-[var(--text-secondary)]">
+                  <ol className="list-decimal pl-4 space-y-1 my-2 text-(--text-secondary)">
                     {children}
                   </ol>
                 ),

@@ -2,7 +2,7 @@
 CREATE EXTENSION IF NOT EXISTS "vector";
 
 -- CreateEnum
-CREATE TYPE "RepositoryStatus" AS ENUM ('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED');
+CREATE TYPE "RepositoryStatus" AS ENUM ('PENDING', 'SUCCESS', 'FAILED');
 
 -- CreateTable
 CREATE TABLE "User" (

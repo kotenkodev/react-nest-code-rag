@@ -1,16 +1,15 @@
 import {
   Body,
   Controller,
+  Get,
   MaxFileSizeValidator,
   ParseFilePipe,
   Post,
-  Sse,
   UploadedFiles,
   UseInterceptors,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { RepositoryLinkDto } from './dto/repository-link.dto';
-import { map, Observable } from 'rxjs';
 import { RepositoriesService } from './repositories.service';
 import { UseGuards } from '@nestjs/common';
 import { AuthGuard } from '../../shared/guards/auth.guard';
@@ -71,12 +70,8 @@ export class RepositoriesController {
     return { error: 'No link or files provided.' };
   }
 
-  @Sse(':id/status')
-  streamStatus(
-    @CurrentUser() user: { email: string },
-  ): Observable<{ data: unknown }> {
-    return this.repositoriesService
-      .getStatusObservable(user.email)
-      .pipe(map((progress) => ({ data: progress })));
+  @Get('status')
+  getStatus(@CurrentUser() user: { email: string }) {
+    return await this.repositoriesService.getStatus(user.email);
   }
 }

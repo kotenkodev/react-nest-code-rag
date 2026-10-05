@@ -19,7 +19,7 @@ export default function Layout() {
         <Logo />
         <div className="ml-auto flex items-center gap-2 sm:gap-3">
           {user?.email && (
-            <span className="hidden text-[0.65rem] text-[var(--text-muted)] sm:inline-block max-w-[160px] md:max-w-[240px] truncate">
+            <span className="hidden text-[1.2rem] text-[var(--text-muted)] sm:inline-block max-w-[160px] md:max-w-[240px] truncate">
               {user.email}
             </span>
           )}
@@ -42,4 +42,3 @@ export default function Layout() {
     </div>
   );
 }
-

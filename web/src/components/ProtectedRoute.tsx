@@ -8,20 +8,35 @@ export default function ProtectedRoute() {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-[var(--background)] p-4">
-        <div className="flex flex-col items-center gap-4 text-center">
-          <div className="flex items-center justify-center size-12 border border-[var(--color-green)] bg-[var(--surface)] text-[var(--color-green)] shadow-[var(--glow-green)]">
-            <Terminal size={24} className="animate-pulse" />
+      <div className="flex h-screen w-screen items-center justify-center bg-[var(--background)] p-6 select-none">
+        <div className="flex flex-col items-center gap-6 text-center max-w-sm w-full border border-[var(--border)] bg-[var(--surface)] p-8 sm:p-10 shadow-[0_0_50px_rgba(0,0,0,0.8)] relative">
+          {/* Glowing Terminal Icon */}
+          <div className="flex items-center justify-center size-20 sm:size-24 border-2 border-[var(--color-green)] bg-[var(--surface-raised)] text-[var(--color-green)] shadow-[var(--glow-green)]">
+            <Terminal size={42} className="animate-pulse stroke-[2.5]" />
           </div>
-          <div className="space-y-1.5">
+
+          <div className="space-y-3 w-full">
             <div className="flex items-center justify-center gap-2">
-              <Badge variant="SCANNING" className="text-[0.6rem] font-mono">
+              <Badge
+                variant="SCANNING"
+                className="text-xs sm:text-sm px-3 py-1 font-mono tracking-widest"
+              >
                 INITIALIZING
               </Badge>
             </div>
+
+            <h2 className="font-mono text-base sm:text-lg font-bold tracking-[0.2em] text-[var(--text-secondary)]">
+              CODE RAG
+            </h2>
+
             <p className="font-mono text-xs text-[var(--text-muted)] tracking-wider">
               AUTHENTICATING SESSION...
             </p>
+
+            {/* Cyberpunk scanning bar */}
+            <div className="mt-4 h-1 w-full bg-[var(--surface-raised)] border border-[var(--border)] overflow-hidden relative">
+              <div className="absolute inset-y-0 left-0 w-1/3 bg-[var(--color-green)] shadow-[var(--glow-green)] animate-[pulse_1.5s_ease-in-out_infinite]" />
+            </div>
           </div>
         </div>
       </div>

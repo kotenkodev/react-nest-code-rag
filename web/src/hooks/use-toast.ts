@@ -1,36 +1,45 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback } from "react";
 
-export type ToastVariant = 'STATUS' | 'WARNING' | 'CRITICAL' | 'INFO'
+export type ToastVariant = "STATUS" | "WARNING" | "CRITICAL" | "INFO";
 
-export interface ToastData {
-  id:          string
-  title:       string
-  description?: string
-  variant?:    ToastVariant
-  duration?:   number
+export interface ToastItem {
+  id: string;
+  title?: string;
+  description?: string;
+  variant?: ToastVariant;
 }
 
-let toastCounter = 0
+let listeners: Array<(toasts: ToastItem[]) => void> = [];
+let memoryToasts: ToastItem[] = [];
+
+function notify() {
+  listeners.forEach((listener) => listener(memoryToasts));
+}
+
+export function toast(item: Omit<ToastItem, "id">) {
+  const newToast: ToastItem = {
+    ...item,
+    id: crypto.randomUUID(),
+  };
+  memoryToasts = [...memoryToasts, newToast];
+  notify();
+
+  setTimeout(() => {
+    memoryToasts = memoryToasts.filter((t) => t.id !== newToast.id);
+    notify();
+  }, 4000);
+}
 
 export function useToast() {
-  const [toasts, setToasts] = useState<ToastData[]>([])
+  const [toasts, setToasts] = useState<ToastItem[]>(memoryToasts);
 
-  const toast = useCallback((data: Omit<ToastData, 'id'>) => {
-    const id = `toast-${++toastCounter}`
-    const duration = data.duration ?? 4000
+  const subscribe = useCallback(() => {
+    const listener = (newToasts: ToastItem[]) => setToasts([...newToasts]);
+    listeners.push(listener);
+    return () => {
+      listeners = listeners.filter((l) => l !== listener);
+    };
+  }, []);
 
-    setToasts((prev) => [...prev, { ...data, id }])
-
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id))
-    }, duration)
-
-    return id
-  }, [])
-
-  const dismiss = useCallback((id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id))
-  }, [])
-
-  return { toasts, toast, dismiss }
+  return { toasts, toast, subscribe };
 }

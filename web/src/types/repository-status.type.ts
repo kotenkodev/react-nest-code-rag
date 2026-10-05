@@ -1,8 +1,7 @@
 export const RepositoryStatus = {
-  PENDING: "PENDING",
-  PROCESSING: "PROCESSING",
-  COMPLETED: "COMPLETED",
+  SUCCESS: "SUCCESS",
   FAILED: "FAILED",
+  PENDING: "PENDING",
   IDLE: "IDLE",
 } as const;
 

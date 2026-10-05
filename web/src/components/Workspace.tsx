@@ -1,4 +1,4 @@
-import { Search, SlidersHorizontal } from "lucide-react";
+import { Search, SlidersHorizontal, XIcon } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Button } from "./ui/button/button";
 import { Badge } from "./ui/badge/badge";
@@ -8,14 +8,12 @@ import { RepositoryStatus } from "@/types/repository-status.type";
 import { useApiStatus } from "@/hooks/useApiStatus";
 import { useConversation } from "@/hooks/useConversation";
 import Sidebar from "./Sidebar";
-import { useAuthStore } from "@/store/store";
+import { useRepositoryStatus } from "@/hooks/useRepositoryStatus";
+import { useAskChat } from "@/hooks/useAskChat";
 
 export default function Workspace() {
-  const { user } = useAuthStore();
-  const email = user?.email;
   const [mobileTab, setMobileTab] = useState<"search" | "sources">("search");
   const [question, setQuestion] = useState("");
-  const [, setAnswer] = useState(false);
   const [activeSource, setActiveSource] = useState<{
     type: "link" | "folder" | "zip";
     value: string;
@@ -24,58 +22,72 @@ export default function Workspace() {
     type: "link",
     value: "github.com/user/repo",
   });
-  const [progress, setProgress] = useState<{
-    status: RepositoryStatus;
-    processedFilesCount: number;
-    totalFilesCount: number;
-  }>({
+
+  const { isOnline, isPending } = useApiStatus();
+  const { data: status } = useRepositoryStatus();
+
+  const progress = status || {
     status: RepositoryStatus.IDLE,
     processedFilesCount: 0,
     totalFilesCount: 0,
-  });
-  const { isOnline, isPending } = useApiStatus();
+  };
 
-  const { messages } = useConversation();
+  const {
+    messages,
+    addUserMessage,
+    startBotMessage,
+    appendBotChunk,
+    setBotError,
+    clearMessages,
+  } = useConversation();
+
+  const { mutateAsync: askChat, isPending: isAskPending } = useAskChat();
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-  function search(event: FormEvent) {
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages]);
+
+  async function search(event: FormEvent) {
     event.preventDefault();
-    if (question.trim()) setAnswer(true);
+    const trimmed = question.trim();
+    if (!trimmed || isAskPending) return;
+
+    addUserMessage(trimmed);
+    setQuestion("");
+    const botMessageId = crypto.randomUUID();
+    startBotMessage(botMessageId);
+
+    try {
+      await askChat({
+        query: trimmed,
+        onChunk: (chunk) => appendBotChunk(botMessageId, chunk),
+      });
+    } catch (err) {
+      setBotError(
+        botMessageId,
+        "Failed to generate response. Please check if the API and RAG engine are online and try again.",
+      );
+    }
   }
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, []);
-
-  useEffect(() => {
-    if (!email) return;
-    const eventSource = new EventSource(
-      `/api/repositories/status?email=${encodeURIComponent(email)}`,
-    );
-    eventSource.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      setProgress(data);
-      if (data.status === "COMPLETED" || data.status === "FAILED") {
-        eventSource.close();
-      }
-    };
-    return () => eventSource.close();
-  }, [email]);
+  function handleClearChat() {
+    clearMessages();
+  }
 
   return (
-    <main className="flex flex-1 min-h-0 flex-col overflow-hidden bg-[var(--background)]">
-      {/* Top Header */}
-
-      {/* Mobile Tab Switcher (Visible on screens < md) */}
-      <div className="flex md:hidden shrink-0 border-b border-[var(--border)] bg-[var(--surface)] p-1.5 gap-1.5 z-10">
+    <main className="flex flex-1 min-h-0 flex-col overflow-hidden bg-(--background)">
+      <div className="flex md:hidden shrink-0 border-b border-(--border) bg-(--surface) p-1.5 gap-1.5 z-10">
         <button
           type="button"
           onClick={() => setMobileTab("search")}
           className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[0.65rem] font-mono transition-all ${
             mobileTab === "search"
-              ? "bg-[var(--surface-raised)] text-[var(--color-green)] border border-[var(--border-active)] font-medium"
-              : "text-[var(--text-muted)] border border-transparent"
+              ? "bg-(--surface-raised) text-green border border-(--border-active) font-medium"
+              : "text-(--text-muted) border border-transparent"
           }`}
         >
           <Search size={12} />
@@ -86,8 +98,8 @@ export default function Workspace() {
           onClick={() => setMobileTab("sources")}
           className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[0.65rem] font-mono transition-all ${
             mobileTab === "sources"
-              ? "bg-[var(--surface-raised)] text-[var(--color-green)] border border-[var(--border-active)] font-medium"
-              : "text-[var(--text-muted)] border border-transparent"
+              ? "bg-(--surface-raised) text-green border border-(--border-active) font-medium"
+              : "text-(--text-muted) border border-transparent"
           }`}
         >
           <SlidersHorizontal size={12} />
@@ -96,32 +108,43 @@ export default function Workspace() {
       </div>
 
       <div className="grid flex-1 min-h-0 md:grid-cols-[340px_minmax(0,1fr)] lg:grid-cols-[380px_minmax(0,1fr)] xl:grid-cols-[420px_minmax(0,1fr)] overflow-hidden">
-        {/* Sidebar / Ingestion Panel */}
         <Sidebar
           mobileTab={mobileTab}
           activeSource={activeSource}
           onSourceSelected={setActiveSource}
         />
 
-        {/* Main Workspace Section */}
         <section
           className={`min-w-0 flex flex-col h-full overflow-hidden ${
             mobileTab === "search" ? "flex" : "hidden md:flex"
           }`}
         >
-          {/* Top Status & Info Bar */}
-          <div className="shrink-0 border-b border-[var(--border)] bg-[var(--surface)]/60 px-4 py-3 sm:px-6">
+          <div className="shrink-0 border-b border-(--border) bg-(--surface)/60 px-4 py-3 sm:px-6">
             <div className="mx-auto max-w-4xl flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h1 className="text-base sm:text-lg font-bold tracking-tight text-[var(--text-secondary)]">
+                <h1 className="text-base sm:text-lg font-bold tracking-tight text-(--text-secondary)">
                   Code Assistant
                 </h1>
-                <p className="text-[0.65rem] sm:text-xs text-[var(--text-muted)]">
+                <p className="text-[0.65rem] sm:text-xs text-(--text-muted)">
                   Ask questions about the codebase, get answers from RAG system
                 </p>
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
+                <Badge
+                  variant={
+                    progress.status === RepositoryStatus.SUCCESS
+                      ? "ACTIVE"
+                      : "OFFLINE"
+                  }
+                  className="text-[0.6rem] sm:text-xs"
+                >
+                  {progress.status === RepositoryStatus.PENDING
+                    ? `PENDING (${progress.processedFilesCount}/${progress.totalFilesCount})`
+                    : progress.status === RepositoryStatus.IDLE
+                      ? "IDLE"
+                      : progress.status}
+                </Badge>
                 <Badge
                   variant={
                     isPending ? "OFFLINE" : isOnline ? "SCANNING" : "CRITICAL"
@@ -134,27 +157,10 @@ export default function Workspace() {
                       ? "RAG ENGINE ACTIVE"
                       : "RAG ENGINE INACTIVE"}
                 </Badge>
-                <Badge
-                  variant={
-                    progress.status === RepositoryStatus.COMPLETED
-                      ? "ACTIVE"
-                      : progress.status === RepositoryStatus.PROCESSING
-                        ? "ACTIVE"
-                        : "OFFLINE"
-                  }
-                  className="text-[0.6rem] sm:text-xs"
-                >
-                  {progress.status === RepositoryStatus.PROCESSING
-                    ? `PROCESSING (${progress.processedFilesCount}/${progress.totalFilesCount})`
-                    : progress.status === RepositoryStatus.IDLE
-                      ? "IDLE"
-                      : progress.status}
-                </Badge>
               </div>
             </div>
           </div>
 
-          {/* Scrollable Messages Stream */}
           <div className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-5 md:p-6 space-y-4">
             <div className="mx-auto max-w-4xl">
               {messages.map((message) => (
@@ -164,37 +170,49 @@ export default function Workspace() {
             </div>
           </div>
 
-          {/* Docked Query Form at Bottom */}
           <div className="shrink-0 p-3 sm:p-4">
             <div className="mx-auto max-w-4xl">
               <form
                 onSubmit={search}
-                className="border border-[var(--border)] bg-[var(--surface-raised)] p-2.5 sm:p-3 transition-all focus-within:border-[var(--border-active)] focus-within:shadow-[var(--glow-green)]"
+                className="border border-(--border) bg-(--surface-raised) p-2.5 sm:p-3 transition-all focus-within:border-(--border-active) focus-within:shadow-(--glow-green)"
               >
-                <div className="mb-2 flex items-center justify-between text-[0.58rem] sm:text-[0.62rem] text-[var(--text-muted)] font-mono">
-                  <span>[PROMPT // QUERY ENGINE]</span>
+                <div className="mb-2 flex items-center justify-between text-[0.58rem] sm:text-[0.62rem] text-(--text-muted) font-mono">
+                  <p>[PROMPT // QUERY ENGINE]</p>
                   <span className="hidden xs:inline">ENTER TO SEARCH</span>
                 </div>
                 <Textarea
                   value={question}
                   onChange={(event) => {
                     setQuestion(event.target.value);
-                    setAnswer(false);
                   }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
-                      if (question.trim()) setAnswer(true);
+                      search(e);
                     }
                   }}
                   placeholder="Ask where something is implemented, trace call graphs, or search functions..."
-                  className="min-h-[50px] sm:min-h-[60px] max-h-[140px] border-none bg-transparent p-0 text-xs sm:text-sm shadow-none focus:border-none focus:shadow-none focus:outline-none"
+                  className="min-h-12.5 sm:min-h-15 max-h-35 border-none bg-transparent p-0 text-xs sm:text-sm shadow-none focus:border-none focus:shadow-none focus:outline-none"
                 />
-                <div className="mt-2 flex items-center justify-between border-t border-[var(--border)] pt-2">
-                  <span className="text-[0.6rem] font-mono text-[var(--text-muted)] hidden sm:inline">
+                <div className="mt-2 flex items-center justify-between border-t border-(--border) pt-2">
+                  <Button
+                    variant="ABORT"
+                    size="SM"
+                    onClick={handleClearChat}
+                    className="py-1 px-2"
+                    type="button"
+                  >
+                    <XIcon />
+                    <span>Clear</span>
+                  </Button>
+                  <span className="px-2 xs:text-[0.6rem] font-mono text-(--text-muted) hidden sm:inline">
                     Shift + Enter for new line
                   </span>
                   <Button
+                    disabled={
+                      isAskPending ||
+                      status?.status === RepositoryStatus.SUCCESS
+                    }
                     type="submit"
                     variant="EXEC"
                     size="SM"
