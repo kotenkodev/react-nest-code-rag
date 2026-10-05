@@ -11,11 +11,41 @@ const typographyVariants = cva('font-mono', {
       H4: 'text-base font-medium uppercase tracking-widest text-[var(--text-secondary)]',
       P: 'text-sm leading-relaxed text-[var(--text-secondary)]',
       LEAD: 'text-base leading-relaxed text-[var(--text-secondary)] opacity-90',
+      LABEL: 'text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]',
+      CAPTION: 'text-[0.7rem] text-[var(--text-muted)] tracking-wide',
       MUTED: 'text-xs text-[var(--text-muted)]',
       CODE: 'text-sm bg-[var(--surface-raised)] border border-[var(--border)] px-1.5 py-0.5 text-[var(--color-green)] inline-block',
+      TERMINAL: 'text-xs bg-[var(--surface)] border-l-2 border-[var(--color-green)] pl-2 py-1 text-[var(--color-green)]',
+    },
+    color: {
+      default: '',
+      green: 'text-[var(--color-green)]',
+      amber: 'text-[var(--color-amber)]',
+      red: 'text-[var(--color-red)]',
+      blue: 'text-[var(--color-blue)]',
+      bone: 'text-[var(--color-bone)]',
+      teal: 'text-[var(--color-teal)]',
+      pink: 'text-[var(--color-pink)]',
+      orange: 'text-[var(--color-orange)]',
+      purple: 'text-[var(--color-purple)]',
+      muted: 'text-[var(--text-muted)]',
+    },
+    glow: {
+      none: '',
+      green: 'text-shadow-[var(--text-glow-green)]',
+      amber: 'text-shadow-[var(--text-glow-amber)]',
+      red: 'text-shadow-[var(--text-glow-red)]',
+      blue: 'text-shadow-[var(--text-glow-blue)]',
+      teal: 'text-shadow-[var(--text-glow-teal)]',
+      pink: 'text-shadow-[var(--text-glow-pink)]',
+      orange: 'text-shadow-[var(--text-glow-orange)]',
     },
   },
-  defaultVariants: { variant: 'P' },
+  defaultVariants: {
+    variant: 'P',
+    color: 'default',
+    glow: 'none',
+  },
 })
 
 type VariantElement = {
@@ -25,8 +55,11 @@ type VariantElement = {
   H4: 'h4'
   P: 'p'
   LEAD: 'p'
+  LABEL: 'span'
+  CAPTION: 'span'
   MUTED: 'p'
   CODE: 'code'
+  TERMINAL: 'div'
 }
 
 const variantTag: VariantElement = {
@@ -36,8 +69,11 @@ const variantTag: VariantElement = {
   H4: 'h4',
   P: 'p',
   LEAD: 'p',
+  LABEL: 'span',
+  CAPTION: 'span',
   MUTED: 'p',
   CODE: 'code',
+  TERMINAL: 'div',
 }
 
 export interface TypographyProps
@@ -47,12 +83,12 @@ export interface TypographyProps
 }
 
 const Typography = React.forwardRef<HTMLElement, TypographyProps>(
-  ({ className, variant = 'P', as, children, ...props }, ref) => {
+  ({ className, variant = 'P', color, glow, as, children, ...props }, ref) => {
     const Tag = (as ?? variantTag[variant as keyof VariantElement] ?? 'p') as React.ElementType
     return (
       <Tag
         ref={ref}
-        className={cn(typographyVariants({ variant }), className)}
+        className={cn(typographyVariants({ variant, color, glow }), className)}
         {...props}
       >
         {children}

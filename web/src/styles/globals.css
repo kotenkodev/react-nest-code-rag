@@ -60,6 +60,18 @@
   --accent-secondary: #4466cc;
   --accent-warning:   #ff8800;
 
+  /* Color palette custom properties */
+  --color-green:          #00ed3f;
+  --color-amber:          #ff8800;
+  --color-amber-light:    #ffa238;
+  --color-red:            #cc2200;
+  --color-blue:           #4466cc;
+  --color-bone:           #E0D5BE;
+  --color-teal:           #6DC3BB;
+  --color-pink:           #B53082;
+  --color-orange:         #F2963A;
+  --color-purple:         #381B57;
+
   /* Glow — original (kept for backward compat) */
   --glow-teal:   0 0 8px #6DC3BB66, 0 0 20px #6DC3BB33;
   --glow-pink:   0 0 8px #B5308266, 0 0 20px #B5308233;
@@ -361,3 +373,126 @@ p {
   background: #E0D5BE;
   color: #040302;
 }
+
+/* ============================================================
+   THEME: CYBERPUNK
+   Neon pink primary · cyber teal info · orange warnings
+   Pitch black backgrounds with neon glows
+   ============================================================ */
+[data-theme="cyberpunk"] {
+  /* Remap color primitives used by components */
+  --color-green:  #FF0080;   /* neon pink = primary accent */
+  --color-amber:  #F2963A;   /* cyber orange = warning */
+  --color-red:    #ff1a40;   /* crimson danger */
+  --color-blue:   #00FFCC;   /* cyan / teal = info */
+  --color-pink:   #FF0080;
+  --color-teal:   #00FFCC;
+  --color-orange: #F2963A;
+  --color-purple: #7928CA;
+  --color-bone:   #F0E6FF;
+
+  /* Backgrounds — pitch black & deep violet-tinted dark */
+  --background:     #000000;
+  --surface:        #0B0813;
+  --surface-raised: #140F24;
+
+  /* Borders */
+  --border:        #291F3D;
+  --border-active: #FF0080;
+
+  /* Text */
+  --text-primary:   #FF0080;
+  --text-secondary: #F0E6FF;
+  --text-muted:     #786494;
+  --text-warning:   #F2963A;
+  --text-danger:    #ff1a40;
+
+  /* Accent shortcuts */
+  --accent-primary:   #FF0080;
+  --accent-secondary: #00FFCC;
+  --accent-warning:   #F2963A;
+
+  /* Glow */
+  --glow-green:  0 0 8px rgba(255,0,128,0.45),  0 0 20px rgba(255,0,128,0.25);
+  --glow-amber:  0 0 8px rgba(242,150,58,0.45), 0 0 20px rgba(242,150,58,0.20);
+  --glow-red:    0 0 8px rgba(255,26,64,0.45),  0 0 20px rgba(255,26,64,0.20);
+  --glow-blue:   0 0 8px rgba(0,255,204,0.45),  0 0 20px rgba(0,255,204,0.20);
+  --glow-pink:   0 0 8px rgba(255,0,128,0.50),  0 0 20px rgba(255,0,128,0.25);
+  --glow-teal:   0 0 8px rgba(0,255,204,0.50),  0 0 20px rgba(0,255,204,0.25);
+
+  /* Text glow */
+  --text-glow-green:  0 0 6px rgba(255,0,128,0.65),  0 0 14px rgba(255,0,128,0.35);
+  --text-glow-amber:  0 0 6px rgba(242,150,58,0.60), 0 0 14px rgba(242,150,58,0.30);
+  --text-glow-red:    0 0 6px rgba(255,26,64,0.65),  0 0 14px rgba(255,26,64,0.30);
+  --text-glow-blue:   0 0 6px rgba(0,255,204,0.65),  0 0 14px rgba(0,255,204,0.30);
+  --text-glow-pink:   0 0 6px rgba(255,0,128,0.70),  0 0 14px rgba(255,0,128,0.35);
+  --text-glow-teal:   0 0 6px rgba(0,255,204,0.70),  0 0 14px rgba(0,255,204,0.35);
+}
+
+[data-theme="cyberpunk"] ::selection {
+  background: #FF0080;
+  color: #000000;
+}
+
+/* ============================================================
+   THEME: LAB LIGHT / ODYSSEY (Sterile Clean Sci-Fi / 2001 A Space Odyssey)
+   Crisp clean white panels · electric cobalt/cyan accent · slate typography
+   ============================================================ */
+[data-theme="light"],
+[data-theme="lab-light"] {
+  /* Remap color primitives used by components */
+  --color-green:  #0062E6;   /* electric cobalt active */
+  --color-amber:  #D97706;   /* amber warning */
+  --color-red:    #E11D48;   /* crimson danger */
+  --color-blue:   #0284C7;   /* sky blue info */
+  --color-bone:   #0F172A;   /* primary slate/dark text */
+  --color-pink:   #D946EF;
+  --color-teal:   #0D9488;
+  --color-orange: #EA580C;
+  --color-purple: #7C3AED;
+
+  /* Backgrounds — clean sterile laboratory light */
+  --background:     #F8FAFC;
+  --surface:        #FFFFFF;
+  --surface-raised: #F1F5F9;
+
+  /* Borders */
+  --border:        #E2E8F0;
+  --border-active: #0062E6;
+
+  /* Text */
+  --text-primary:   #0062E6;
+  --text-secondary: #0F172A;
+  --text-muted:     #64748B;
+  --text-warning:   #D97706;
+  --text-danger:    #E11D48;
+
+  /* Accent shortcuts */
+  --accent-primary:   #0062E6;
+  --accent-secondary: #0284C7;
+  --accent-warning:   #D97706;
+
+  /* Glow (subtle soft elevation & edge glow in light mode) */
+  --glow-green:  0 2px 8px rgba(0, 98, 230, 0.20), 0 0 1px rgba(0, 98, 230, 0.40);
+  --glow-amber:  0 2px 8px rgba(217, 119, 6, 0.20), 0 0 1px rgba(217, 119, 6, 0.40);
+  --glow-red:    0 2px 8px rgba(225, 29, 72, 0.20), 0 0 1px rgba(225, 29, 72, 0.40);
+  --glow-blue:   0 2px 8px rgba(2, 132, 199, 0.20), 0 0 1px rgba(2, 132, 199, 0.40);
+  --glow-pink:   0 2px 8px rgba(217, 70, 239, 0.20), 0 0 1px rgba(217, 70, 239, 0.40);
+  --glow-teal:   0 2px 8px rgba(13, 148, 136, 0.20), 0 0 1px rgba(13, 148, 136, 0.40);
+
+  /* Text glow */
+  --text-glow-green:  none;
+  --text-glow-amber:  none;
+  --text-glow-red:    none;
+  --text-glow-blue:   none;
+  --text-glow-pink:   none;
+  --text-glow-teal:   none;
+}
+
+[data-theme="light"] ::selection,
+[data-theme="lab-light"] ::selection {
+  background: #0062E6;
+  color: #FFFFFF;
+}
+
+
