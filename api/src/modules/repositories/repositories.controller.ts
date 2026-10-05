@@ -2,7 +2,6 @@ import {
   Body,
   Controller,
   MaxFileSizeValidator,
-  Param,
   ParseFilePipe,
   Post,
   Sse,
@@ -73,7 +72,9 @@ export class RepositoriesController {
   }
 
   @Sse(':id/status')
-  streamStatus(@CurrentUser() user): Observable<{ data: any }> {
+  streamStatus(
+    @CurrentUser() user: { email: string },
+  ): Observable<{ data: unknown }> {
     return this.repositoriesService
       .getStatusObservable(user.email)
       .pipe(map((progress) => ({ data: progress })));

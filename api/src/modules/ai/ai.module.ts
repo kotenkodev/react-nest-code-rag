@@ -3,6 +3,7 @@ import { LlmserviceService } from './llmservice.service';
 import { EmbeddingService } from './embedding.service';
 
 @Module({
-  providers: [LlmserviceService, EmbeddingService]
+  providers: [LlmserviceService, EmbeddingService],
+  exports: [LlmserviceService, EmbeddingService],
 })
 export class AiModule {}

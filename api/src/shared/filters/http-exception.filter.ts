@@ -34,11 +34,17 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         messageStr = res;
         errorType = exception.name || 'HttpException';
       } else if (typeof res === 'object' && res !== null) {
-        const obj = res as Record<string, any>;
-        messageStr = Array.isArray(obj.message)
-          ? obj.message.join(', ')
-          : obj.message || exception.message;
-        errorType = obj.error || exception.name || 'HttpException';
+        const obj = res as Record<string, unknown>;
+        const rawMessage = obj.message;
+        messageStr = Array.isArray(rawMessage)
+          ? rawMessage.join(', ')
+          : typeof rawMessage === 'string'
+            ? rawMessage
+            : exception.message;
+        errorType =
+          typeof obj.error === 'string'
+            ? obj.error
+            : exception.name || 'HttpException';
       }
     } else if (exception instanceof Error) {
       messageStr = isDev ? exception.message : 'Internal server error';

@@ -6,14 +6,14 @@ import { cn } from '@/lib/utils'
 const buttonVariants = cva(
   [
     'inline-flex items-center justify-center',
-    'font-mono font-medium uppercase tracking-widest',
+    'font-mono font-medium uppercase tracking-wider',
     'border border-solid',
     'cursor-pointer select-none',
     'transition-all duration-150',
     'focus-visible:outline-none',
     'disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none',
     'rounded-none',
-    'whitespace-nowrap',
+    'whitespace-nowrap min-w-0',
   ],
   {
     variants: {
@@ -56,9 +56,9 @@ const buttonVariants = cva(
         ],
       },
       size: {
-        SM: 'h-7  px-3  text-[0.65rem] gap-1.5',
-        MD: 'h-9  px-4  text-[0.75rem] gap-2',
-        LG: 'h-11 px-6  text-[0.875rem] gap-2.5',
+        SM: 'h-7 px-2 sm:px-2.5 text-[0.6rem] sm:text-[0.625rem] gap-1 sm:gap-1.5',
+        MD: 'h-9 px-3 sm:px-4 text-[0.7rem] sm:text-[0.75rem] gap-1.5 sm:gap-2',
+        LG: 'h-10 sm:h-11 px-4 sm:px-6 text-[0.8rem] sm:text-[0.875rem] gap-2 sm:gap-2.5',
       },
     },
     defaultVariants: {

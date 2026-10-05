@@ -1,7 +1,8 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { from, mergeMap } from 'rxjs';
+import { from, map } from 'rxjs';
 import AdmZip from 'adm-zip';
+import { RepositoryStatus } from '@prisma/client';
 
 export interface ExtractedFile {
   path: string;
@@ -15,6 +16,76 @@ export class RepositoriesService {
 
   constructor(private readonly prismaService: PrismaService) {}
 
+  async createOrResetRepository(
+    email: string,
+    name: string,
+    url?: string,
+    totalFiles = 0,
+  ) {
+    const user = await this.prismaService.user.upsert({
+      where: { email },
+      create: { email },
+      update: {},
+    });
+
+    if (user.repositoryId) {
+      return this.prismaService.repository.update({
+        where: { id: user.repositoryId },
+        data: {
+          name,
+          url,
+          totalFilesCount: totalFiles,
+          processedFilesCount: 0,
+          errorMessage: null,
+          status: RepositoryStatus.PENDING,
+          chunks: { deleteMany: {} },
+        },
+      });
+    }
+
+    const repo = await this.prismaService.repository.create({
+      data: {
+        name,
+        url,
+        totalFilesCount: totalFiles,
+        processedFilesCount: 0,
+        errorMessage: null,
+        status: RepositoryStatus.PENDING,
+      },
+    });
+
+    await this.prismaService.user.update({
+      where: { id: user.id },
+      data: { repositoryId: repo.id },
+    });
+
+    return repo;
+  }
+
+  async updateProgress(repositoryId: string, processed: number, total: number) {
+    return this.prismaService.repository.update({
+      where: { id: repositoryId },
+      data: {
+        processedFilesCount: processed,
+        totalFilesCount: total,
+      },
+    });
+  }
+
+  async setStatus(
+    repositoryId: string,
+    status: RepositoryStatus,
+    errorMessage?: string,
+  ) {
+    return this.prismaService.repository.update({
+      where: { id: repositoryId },
+      data: {
+        status,
+        errorMessage: errorMessage || null,
+      },
+    });
+  }
+
   buildGithubZipUrl(repoUrl: string, branch = 'main'): string {
     const trimmed = repoUrl.trim();
     if (trimmed.endsWith('.zip')) {
@@ -23,7 +94,7 @@ export class RepositoriesService {
 
     const cleaned = trimmed.replace(/\.git$/, '').replace(/\/+$/, '');
     const githubMatch = cleaned.match(
-      /^https?:\/\/(?:www\.)?github\.com\/([^\/]+)\/([^\/]+)/,
+      /^https?:\/\/(?:www\.)?github\.com\/([^/]+)\/([^/]+)/,
     );
 
     if (githubMatch) {
@@ -31,7 +102,9 @@ export class RepositoriesService {
       return `https://github.com/${owner}/${repo}/archive/refs/heads/${branch}.zip`;
     }
 
-    const shorthandMatch = cleaned.match(/^([a-zA-Z0-9_.-]+)\/([a-zA-Z0-9_.-]+)$/);
+    const shorthandMatch = cleaned.match(
+      /^([a-zA-Z0-9_.-]+)\/([a-zA-Z0-9_.-]+)$/,
+    );
     if (shorthandMatch) {
       const [, owner, repo] = shorthandMatch;
       return `https://github.com/${owner}/${repo}/archive/refs/heads/${branch}.zip`;
@@ -161,11 +234,18 @@ export class RepositoriesService {
   }
 
   getStatusObservable(email: string) {
-    return from([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]).pipe(
-      mergeMap(
-        (i) => from(fetch(`https://jsonplaceholder.typicode.com/posts/${i}`)),
-        2,
-      ),
+    return from(
+      this.prismaService.user.findUnique({
+        where: { email },
+        include: { repository: true },
+      }),
+    ).pipe(
+      map((user) => ({
+        status: user?.repository?.status || 'IDLE',
+        processedFilesCount: user?.repository?.processedFilesCount || 0,
+        totalFilesCount: user?.repository?.totalFilesCount || 0,
+        errorMessage: user?.repository?.errorMessage || '',
+      })),
     );
   }
 }
