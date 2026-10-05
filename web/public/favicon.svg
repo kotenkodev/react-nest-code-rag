@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#141414" />
+      <stop offset="100%" stop-color="#070707" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="1.5" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Cyberpunk notched base panel -->
+  <polygon
+    points="8,2 62,2 62,56 56,62 2,62 2,8"
+    fill="url(#bg)"
+    stroke="#00ed3f"
+    stroke-width="2.5"
+  />
+
+  <!-- Header divider -->
+  <line x1="2" y1="17" x2="62" y2="17" stroke="#252525" stroke-width="1.5" />
+
+  <!-- Terminal indicators -->
+  <circle cx="8" cy="9.5" r="2" fill="#00ed3f" />
+  <circle cx="15" cy="9.5" r="2" fill="#4A4A40" />
+  <circle cx="22" cy="9.5" r="2" fill="#4A4A40" />
+
+  <!-- Prompt symbol: > -->
+  <polyline
+    points="15,27 27,37 15,47"
+    fill="none"
+    stroke="#00ed3f"
+    stroke-width="4.5"
+    stroke-linecap="square"
+    stroke-linejoin="miter"
+    filter="url(#glow)"
+  />
+
+  <!-- Terminal underscore cursor: _ -->
+  <rect
+    x="33"
+    y="43"
+    width="15"
+    height="4.5"
+    fill="#00ed3f"
+    filter="url(#glow)"
+  />
+</svg>

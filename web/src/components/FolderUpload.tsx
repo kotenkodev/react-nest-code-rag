@@ -424,7 +424,7 @@ export function FolderUpload({
           <div>
             <Input
               label="GitHub Repository"
-              placeholder="https://github.com/kotenkodev/reponame"
+              placeholder="https://github.com/user/reponame"
               value={repoUrl}
               onChange={(e) => {
                 setRepoUrl(e.target.value);

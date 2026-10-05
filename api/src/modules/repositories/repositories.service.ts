@@ -1,13 +1,20 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { from, map } from 'rxjs';
+import { from, map, Observable } from 'rxjs';
 import AdmZip from 'adm-zip';
-import { RepositoryStatus } from '@prisma/client';
+import { Repository, RepositoryStatus } from '@prisma/client';
 
 export interface ExtractedFile {
   path: string;
   content: string;
   size: number;
+}
+
+export interface RepositoryProgressStatus {
+  status: string;
+  processedFilesCount: number;
+  totalFilesCount: number;
+  errorMessage: string;
 }
 
 @Injectable()
@@ -16,12 +23,26 @@ export class RepositoriesService {
 
   constructor(private readonly prismaService: PrismaService) {}
 
+  async getRepository(email: string) {
+    const user = await this.prismaService.user.findUnique({
+      where: { email },
+    });
+
+    if (!user?.repositoryId) {
+      return null;
+    }
+
+    return this.prismaService.repository.findUnique({
+      where: { id: user.repositoryId },
+    });
+  }
+
   async createOrResetRepository(
     email: string,
     name: string,
     url?: string,
     totalFiles = 0,
-  ) {
+  ): Promise<Repository> {
     const user = await this.prismaService.user.upsert({
       where: { email },
       create: { email },
@@ -62,7 +83,11 @@ export class RepositoriesService {
     return repo;
   }
 
-  async updateProgress(repositoryId: string, processed: number, total: number) {
+  async updateProgress(
+    repositoryId: string,
+    processed: number,
+    total: number,
+  ): Promise<Repository> {
     return this.prismaService.repository.update({
       where: { id: repositoryId },
       data: {
@@ -76,7 +101,7 @@ export class RepositoriesService {
     repositoryId: string,
     status: RepositoryStatus,
     errorMessage?: string,
-  ) {
+  ): Promise<Repository> {
     return this.prismaService.repository.update({
       where: { id: repositoryId },
       data: {
@@ -233,7 +258,7 @@ export class RepositoriesService {
     return this.downloadGithubRepositoryZip(url, branch);
   }
 
-  getStatusObservable(email: string) {
+  getStatusObservable(email: string): Observable<RepositoryProgressStatus> {
     return from(
       this.prismaService.user.findUnique({
         where: { email },
