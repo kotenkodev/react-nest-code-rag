@@ -34,11 +34,11 @@ export default function Sidebar({
         </div>
         <div className="mb-3 flex items-center gap-2 text-xs text-(--text-secondary) font-mono min-w-0">
           {activeSource.type === "link" ? (
-            <Link2 size={13} className="text-green shrink-0" />
+            <Link2 size={13} className="text-(--text-primary) shrink-0" />
           ) : activeSource.type === "zip" ? (
-            <Archive size={13} className="text-green shrink-0" />
+            <Archive size={13} className="text-(--text-primary) shrink-0" />
           ) : (
-            <Folder size={13} className="text-green shrink-0" />
+            <Folder size={13} className="text-(--text-primary) shrink-0" />
           )}
           <span className="truncate font-medium">{activeSource.value}</span>
         </div>
@@ -52,10 +52,6 @@ export default function Sidebar({
       </div>
 
       <div className="flex h-10 sm:h-11 shrink-0 items-center border-b border-(--border) px-3 sm:px-4">
-        <GitBranch size={13} className="text-green shrink-0" />
-        <span className="ml-2 text-[0.65rem] text-(--text-secondary) font-mono truncate">
-          main
-        </span>
         <Badge variant="OFFLINE" className="ml-auto text-[0.6rem]">
           {RepositoryStatus.IDLE}
         </Badge>

@@ -10,7 +10,11 @@ export const appConfigSchema: Joi.ObjectSchema = Joi.object({
     .valid('development', 'production', 'test', 'provision')
     .default('development'),
 
-  LLM_API_KEY: Joi.string().allow(null).allow('').optional(),
-  EMBEDDING_MODEL: Joi.string().optional().allow(null).allow(''),
-  LLM_MODEL: Joi.string().optional().allow(null).allow(''),
+  EMBEDDING_BASE_URL: Joi.string().optional().allow(null, ''),
+  EMBEDDING_API_KEY: Joi.string().optional().allow(null, ''),
+  EMBEDDING_MODEL: Joi.string().optional().allow(null, ''),
+
+  LLM_BASE_URL: Joi.string().optional().allow(null, ''),
+  LLM_API_KEY: Joi.string().optional().allow(null, ''),
+  LLM_MODEL: Joi.string().optional().allow(null, ''),
 });

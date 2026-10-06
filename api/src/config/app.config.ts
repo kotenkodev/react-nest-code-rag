@@ -5,9 +5,15 @@ export const appConfig = registerAs('app', () => ({
   port: parseInt(process.env.PORT ?? '3000', 10),
   cors: process.env.CORS_ORIGINS ?? '',
 
+  // Embeddings (Jina AI)
+  embeddingBaseUrl: process.env.EMBEDDING_BASE_URL ?? 'https://api.jina.ai/v1',
+  embeddingApiKey: process.env.EMBEDDING_API_KEY ?? '',
+  embeddingModel: process.env.EMBEDDING_MODEL ?? 'jina-embeddings-v3',
+
+  // LLM Chat / Answering (Groq)
+  llmBaseUrl: process.env.LLM_BASE_URL ?? 'https://api.groq.com/openai/v1',
   llmApiKey: process.env.LLM_API_KEY ?? '',
-  embeddingModel: process.env.EMBEDDING_MODEL ?? 'text-embedding-3-small',
-  llmModel: process.env.LLM_MODEL ?? 'gpt-4o-mini',
+  llmModel: process.env.LLM_MODEL ?? 'llama-3.3-70b-versatile',
 }));
 
 export type AppConfig = ConfigType<typeof appConfig>;

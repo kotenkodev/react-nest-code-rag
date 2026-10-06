@@ -20,7 +20,7 @@ export default function Login() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[var(--background)] px-5">
+    <main className="flex min-h-screen items-center justify-center bg-(--background) px-5">
       <div className="w-full max-w-md">
         <div className="mb-6">
           <Logo />
@@ -34,14 +34,12 @@ export default function Login() {
           </PanelHeader>
           <PanelContent className="space-y-6 p-7">
             <div>
-              <h1 className="text-2xl text-[var(--text-secondary)]">
+              <h1 className="text-2xl text-(--text-secondary)">
                 CODE DOCUMENTATION,
                 <br />
-                <span className="text-[var(--color-green)]">
-                  WITHOUT THE HUNT.
-                </span>
+                <span className="text-(--text-primary)">WITHOUT THE HUNT.</span>
               </h1>
-              <p className="mt-3 text-xs leading-6 text-[var(--text-muted)]">
+              <p className="mt-3 text-xs leading-6 text-(--text-muted)">
                 Open a repository, browse its structure, and get clear answers
                 grounded in the source.
               </p>
@@ -59,7 +57,7 @@ export default function Login() {
                 CONTINUE <ArrowRight size={14} />
               </Button>
             </form>
-            <p className="text-[0.6rem] text-[var(--text-muted)]">
+            <p className="text-[0.6rem] text-(--text-muted)">
               NO PASSWORD // SAVED ON THIS DEVICE
             </p>
           </PanelContent>

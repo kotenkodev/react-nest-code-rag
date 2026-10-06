@@ -5,6 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="theme-color" content="#00ed3f" />
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem('scifi-rag-theme');
+          if (saved && saved !== 'default') {
+            document.documentElement.setAttribute('data-theme', saved);
+          }
+        } catch (e) {}
+      })();
+    </script>
     <title>CODE RAG | Code Assistant</title>
   </head>
   <body>

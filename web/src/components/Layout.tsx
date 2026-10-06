@@ -15,13 +15,13 @@ export default function Layout() {
   };
 
   return (
-    <div className="flex h-screen max-h-screen flex-col overflow-hidden bg-[var(--background)]">
-      <header className="flex h-14 sm:h-16 shrink-0 items-center border-b border-[var(--border)] bg-[var(--surface)] px-3 sm:px-5 z-10">
+    <div className="flex h-screen max-h-screen flex-col overflow-hidden bg-(--background)">
+      <header className="flex h-14 sm:h-16 shrink-0 items-center border-b border-(--border) bg-(--surface) px-3 sm:px-5 z-10">
         <Logo />
         <div className="ml-auto flex items-center gap-2 sm:gap-3">
           <ThemeToggle />
           {user?.email && (
-            <span className="hidden text-[0.8rem] text-[var(--text-muted)] sm:inline-block max-w-[160px] md:max-w-[240px] truncate font-mono">
+            <span className="hidden text-[0.8rem] text-(--text-muted) sm:inline-block max-w-40 md:max-w-[240px] truncate font-mono">
               {user.email}
             </span>
           )}

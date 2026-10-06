@@ -23,8 +23,8 @@ import {
 } from "lucide-react";
 import axios from "@/lib/axios";
 
-const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024; // 50MB per file/zip
-const MAX_BATCH_SIZE_BYTES = 100 * 1024 * 1024; // 100MB total batch
+const MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024; // 2MB per file/zip
+const MAX_BATCH_SIZE_BYTES = 100 * 1024 * 1024; // 10MB total batch
 
 export interface FolderUploadProps {
   onSourceSelected?: (source: {
@@ -208,13 +208,13 @@ export function FolderUpload({
       if (existingPaths.has(pathKey)) continue;
 
       if (file.size > MAX_FILE_SIZE_BYTES) {
-        setFolderError(`File "${file.name}" exceeds the 50MB limit.`);
+        setFolderError(`File "${file.name}" exceeds the 2MB limit.`);
         return;
       }
 
       currentTotalSize += file.size;
       if (currentTotalSize > MAX_BATCH_SIZE_BYTES) {
-        setFolderError("Total selection exceeds 100MB batch limit.");
+        setFolderError("Total selection exceeds 10MB batch limit.");
         return;
       }
 
@@ -382,12 +382,9 @@ export function FolderUpload({
   };
 
   return (
-    <div
-      className={`border border-[var(--border)] bg-[var(--surface)] p-3 ${className}`}
-    >
-      {/* Mode Toggle Header */}
-      <div className="mb-3 border-b border-[var(--border)] pb-2">
-        <div className="mb-2 text-[0.6rem] font-mono tracking-[0.16em] text-[var(--text-muted)] uppercase">
+    <div className={`border border-(--border) bg-(--surface) p-3 ${className}`}>
+      <div className="mb-3 border-b border-(--border) pb-2">
+        <div className="mb-2 text-[0.6rem] font-mono tracking-[0.16em] text-(--text-muted) uppercase">
           INGESTION SOURCE
         </div>
         <div className="grid grid-cols-2 gap-1">
@@ -396,8 +393,8 @@ export function FolderUpload({
             onClick={() => setActiveTab("link")}
             className={`flex items-center justify-center gap-1 px-1 py-1.5 text-[0.58rem] sm:text-[0.62rem] font-mono transition-all min-w-0 ${
               activeTab === "link"
-                ? "bg-[var(--surface-raised)] text-[var(--color-green)] border border-[var(--border-active)] font-medium"
-                : "text-[var(--text-muted)] hover:text-[var(--text-secondary)] border border-[var(--border)] bg-transparent"
+                ? "bg-(--surface-raised) text-(--text-primary) border border-(--border-active) font-medium"
+                : "text-(--text-muted) hover:text-(--text-secondary) border border-(--border) bg-transparent"
             }`}
           >
             <DownloadCloud size={11} className="shrink-0" />
@@ -408,8 +405,8 @@ export function FolderUpload({
             onClick={() => setActiveTab("folder")}
             className={`flex items-center justify-center gap-1 px-1 py-1.5 text-[0.58rem] sm:text-[0.62rem] font-mono transition-all min-w-0 ${
               activeTab === "folder"
-                ? "bg-[var(--surface-raised)] text-[var(--color-green)] border border-[var(--border-active)] font-medium"
-                : "text-[var(--text-muted)] hover:text-[var(--text-secondary)] border border-[var(--border)] bg-transparent"
+                ? "bg-(--surface-raised) text-(--text-primary) border border-(--border-active) font-medium"
+                : "text-(--text-muted) hover:text-(--text-secondary) border border-(--border) bg-transparent"
             }`}
           >
             <Folder size={11} className="shrink-0" />
@@ -418,7 +415,6 @@ export function FolderUpload({
         </div>
       </div>
 
-      {/* Tab 1: GIT REPOSITORY ZIP DOWNLOAD */}
       {activeTab === "link" && (
         <form onSubmit={handleLinkSubmit} className="space-y-3">
           <div>
@@ -462,25 +458,23 @@ export function FolderUpload({
           </div>
 
           {previewZipUrl && (
-            <div className="border border-[var(--border)] bg-[var(--surface-raised)] p-2 text-[0.58rem] font-mono text-[var(--text-muted)] leading-relaxed break-all">
-              <div className="text-[var(--color-green)] mb-0.5 flex items-center gap-1">
+            <div className="border border-(--border) bg-(--surface-raised) p-2 text-[0.75rem] font-mono text-(--text-muted) leading-relaxed break-all">
+              <div className="text-(--text-primary) mb-0.5 flex items-center gap-1">
                 <Archive size={10} className="shrink-0" /> Zip Download URL:
               </div>
-              <span className="text-[var(--text-secondary)]">
-                {previewZipUrl}
-              </span>
+              <span className="text-(--text-secondary)">{previewZipUrl}</span>
             </div>
           )}
 
           {linkError && (
-            <div className="flex items-start gap-1.5 text-[0.62rem] text-[var(--color-amber)] font-mono">
+            <div className="flex items-start gap-1.5 text-[0.62rem] text-(--amber) font-mono">
               <AlertTriangle size={12} className="shrink-0 mt-0.5" />
               <span>{linkError}</span>
             </div>
           )}
 
           {linkStatus === "success" && (
-            <div className="flex items-start gap-1.5 text-[0.62rem] text-[var(--color-green)] font-mono">
+            <div className="flex items-start gap-1.5 text-[0.62rem] text-(--text-primary) font-mono">
               <CheckCircle2 size={12} className="shrink-0 mt-0.5" />
               <span>
                 {linkMessage ||
@@ -491,10 +485,8 @@ export function FolderUpload({
         </form>
       )}
 
-      {/* Tab 2: LOCAL FOLDER / ZIP / MULTI-FILE UPLOAD */}
       {activeTab === "folder" && (
         <div className="space-y-3">
-          {/* Native Hidden Folder Picker Input */}
           <input
             ref={folderInputRef}
             type="file"
@@ -508,7 +500,6 @@ export function FolderUpload({
             >)}
           />
 
-          {/* Native Hidden Multi-File Picker Input */}
           <input
             ref={fileInputRef}
             type="file"
@@ -518,7 +509,6 @@ export function FolderUpload({
             onChange={handleFilesSelected}
           />
 
-          {/* Native Hidden Zip File Picker Input */}
           <input
             ref={zipInputRef}
             type="file"
@@ -529,26 +519,24 @@ export function FolderUpload({
             onChange={handleFilesSelected}
           />
 
-          {/* Drag & Drop Zone */}
           <div
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             className={`flex flex-col items-center justify-center border border-dashed p-3 text-center transition-all ${
               isDragging
-                ? "border-[var(--color-green)] bg-[var(--surface-raised)] shadow-[var(--glow-green)]"
-                : "border-[var(--border)] bg-[var(--surface-raised)]"
+                ? "border-green bg-(--surface-raised) shadow-(--glow-green)"
+                : "border-(--border) bg-(--surface-raised)"
             }`}
           >
-            <FolderPlus size={18} className="mb-1 text-[var(--color-green)]" />
-            <span className="text-[0.62rem] font-mono text-[var(--text-secondary)] font-medium uppercase">
+            <FolderPlus size={18} className="mb-1 text-(--text-primary)" />
+            <span className="text-[0.62rem] font-mono text-(--text-secondary) font-medium uppercase">
               {isDragging
                 ? "DROP ITEMS HERE"
                 : "DRAG & DROP FOLDER, ZIP, OR FILES"}
             </span>
           </div>
 
-          {/* Action Buttons: Add Folder, Add Zip, Add Files */}
           <div className="grid grid-cols-3 gap-1">
             <Button
               type="button"
@@ -560,7 +548,7 @@ export function FolderUpload({
             >
               <Folder
                 size={10}
-                className="mr-1 shrink-0 text-[var(--color-green)]"
+                className="mr-1 shrink-0 text-(--text-primary)"
               />
               <span className="truncate">+ FOLDER</span>
             </Button>
@@ -575,7 +563,7 @@ export function FolderUpload({
             >
               <Archive
                 size={10}
-                className="mr-1 shrink-0 text-[var(--color-green)]"
+                className="mr-1 shrink-0 text-(--text-primary)"
               />
               <span className="truncate">+ ZIP</span>
             </Button>
@@ -590,40 +578,39 @@ export function FolderUpload({
             >
               <Files
                 size={10}
-                className="mr-1 shrink-0 text-[var(--color-green)]"
+                className="mr-1 shrink-0 text-(--text-primary)"
               />
               <span className="truncate">+ FILES</span>
             </Button>
           </div>
 
-          {/* Summary of Selected Items with Individual Deselect Buttons */}
           {files.length > 0 && (
-            <div className="space-y-2 border-t border-[var(--border)] pt-2.5">
+            <div className="space-y-2 border-t border-(--border) pt-2.5">
               <div className="space-y-1 max-h-32 overflow-y-auto pr-1">
                 {groupedItems.map((item) => (
                   <div
                     key={item.id}
-                    className="flex items-center justify-between border border-[var(--border)] bg-[var(--surface-raised)] px-2 py-1 text-[0.62rem] font-mono text-[var(--text-secondary)]"
+                    className="flex items-center justify-between border border-(--border) bg-(--surface-raised) px-2 py-1 text-[0.62rem] font-mono text-(--text-secondary)"
                   >
                     <div className="flex items-center gap-1.5 truncate">
                       {item.type === "zip" ? (
                         <Archive
                           size={12}
-                          className="text-[var(--color-green)] shrink-0"
+                          className="text-(--text-primary) shrink-0"
                         />
                       ) : item.type === "folder" ? (
                         <Folder
                           size={12}
-                          className="text-[var(--color-green)] shrink-0"
+                          className="text-(--text-primary) shrink-0"
                         />
                       ) : (
                         <FileCode
                           size={12}
-                          className="text-[var(--color-green)] shrink-0"
+                          className="text-(--text-primary) shrink-0"
                         />
                       )}
                       <span className="truncate font-medium">{item.name}</span>
-                      <span className="text-[0.55rem] text-[var(--text-muted)] shrink-0">
+                      <span className="text-[0.55rem] text-(--text-muted) shrink-0">
                         {item.type === "folder"
                           ? `(${item.fileCount} files)`
                           : `(${(item.totalSize / 1024).toFixed(1)} KB)`}
@@ -632,7 +619,7 @@ export function FolderUpload({
                     <button
                       type="button"
                       onClick={() => removeGroupedItem(item)}
-                      className="ml-2 text-[var(--text-muted)] hover:text-[var(--color-amber)] transition-colors p-0.5 shrink-0"
+                      className="ml-2 text-(--text-muted) hover:text-(--text-warning) transition-colors p-0.5 shrink-0"
                       title={`Remove ${item.name}`}
                     >
                       <XCircle size={12} />
@@ -641,7 +628,7 @@ export function FolderUpload({
                 ))}
               </div>
 
-              <div className="flex items-center justify-between text-[0.6rem] font-mono text-[var(--text-muted)] px-1">
+              <div className="flex items-center justify-between text-[0.6rem] font-mono text-(--text-muted) px-1">
                 <span>
                   {files.length} total files ({groupedItems.length} items)
                 </span>
@@ -674,14 +661,14 @@ export function FolderUpload({
           )}
 
           {folderError && (
-            <div className="flex items-start gap-1.5 text-[0.62rem] text-[var(--color-amber)] font-mono">
+            <div className="flex items-start gap-1.5 text-[0.62rem] text-(--text-warning) font-mono">
               <AlertTriangle size={12} className="shrink-0 mt-0.5" />
               <span>{folderError}</span>
             </div>
           )}
 
           {uploadSuccess && (
-            <div className="flex items-start gap-1.5 text-[0.62rem] text-[var(--color-green)] font-mono">
+            <div className="flex items-start gap-1.5 text-[0.62rem] text-(--text-primary) font-mono">
               <CheckCircle2 size={12} className="shrink-0 mt-0.5" />
               <span>
                 {folderMessage || "Items uploaded and indexed successfully!"}

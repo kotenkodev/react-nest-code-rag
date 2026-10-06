@@ -50,5 +50,5 @@ model CodeChunk {
   endLine      Int
   createdAt    DateTime   @default(now())
 
-  embedding    Unsupported("vector(1536)")
+  embedding    Unsupported("vector(1024)")
 }

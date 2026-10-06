@@ -20,7 +20,7 @@ export default function ChatMessage({ message, className }: ChatMessageProps) {
         "mb-4 transition-all duration-200",
         isUser
           ? "border-(--border) bg-(--surface)/70 border-l-[3px] border-l-(--text-muted)"
-          : "border-(--border) bg-(--surface) border-l-[3px] border-l-green shadow-[0_0_15px_-3px_rgba(0,237,63,0.07)]",
+          : "border-(--border) bg-(--surface) border-l-[3px] border-l-(--accent-primary) shadow-(--glow-green)",
         className,
       )}
     >
@@ -32,11 +32,11 @@ export default function ChatMessage({ message, className }: ChatMessageProps) {
       >
         <div className="flex items-center gap-2">
           {isUser ? (
-            <div className="flex items-center justify-center w-5 h-5 rounded-none bg-(--surface) border border-[var(--border)] text-[var(--text-muted)]">
+            <div className="flex items-center justify-center w-5 h-5 rounded-none bg-(--surface) border border-(--border) text-(--text-muted)">
               <User size={12} />
             </div>
           ) : (
-            <div className="flex items-center justify-center w-5 h-5 rounded-none bg-green/10 border border-[var(--color-green)] text-[var(--color-green)]">
+            <div className="flex items-center justify-center w-5 h-5 rounded-none bg-green/10 border border-green text-(--text-primary)">
               <Sparkles size={12} />
             </div>
           )}
@@ -44,7 +44,7 @@ export default function ChatMessage({ message, className }: ChatMessageProps) {
           <PanelTitle
             className={cn(
               "text-[0.68rem] sm:text-xs font-mono tracking-wider",
-              isUser ? "text-(--text-secondary)" : "text-green",
+              isUser ? "text-(--text-secondary)" : "text-(--text-primary)",
             )}
           >
             {isUser ? "USER QUERY" : "RAG RESPONSE"}
@@ -87,13 +87,13 @@ export default function ChatMessage({ message, className }: ChatMessageProps) {
                     !children.includes("\n");
                   return isInline ? (
                     <code
-                      className="px-1.5 py-0.5 font-mono text-[0.72rem] bg-(--surface-raised) text-[var(--color-green)] border border-[var(--border)]"
+                      className="px-1.5 py-0.5 font-mono text-[0.72rem] bg-(--surface-raised) text-(--text-primary) border border-(--border)"
                       {...props}
                     >
                       {children}
                     </code>
                   ) : (
-                    <pre className="p-3 my-2 overflow-x-auto font-mono text-[0.72rem] bg-[var(--surface-raised)] text-[var(--color-green)] border border-[var(--border)]">
+                    <pre className="p-3 my-2 overflow-x-auto font-mono text-[0.72rem] bg-(--surface-raised) text-(--text-primary) border border-(--border)">
                       <code className={className} {...props}>
                         {children}
                       </code>
@@ -118,9 +118,9 @@ export default function ChatMessage({ message, className }: ChatMessageProps) {
         )}
 
         {!isUser && message.sources && message.sources.length > 0 && (
-          <div className="pt-2.5 border-t border-[var(--border)]">
-            <div className="flex items-center gap-1.5 text-[0.6rem] font-mono text-[var(--text-muted)] uppercase tracking-wider mb-2">
-              <FileCode2 size={11} className="text-[var(--color-green)]" />
+          <div className="pt-2.5 border-t border-(--border)">
+            <div className="flex items-center gap-1.5 text-[0.6rem] font-mono text-(--text-muted) uppercase tracking-wider mb-2">
+              <FileCode2 size={11} className="text-(--text-primary)" />
               <span>Referenced Sources</span>
             </div>
             <div className="flex flex-wrap gap-1.5 sm:gap-2">
@@ -128,7 +128,7 @@ export default function ChatMessage({ message, className }: ChatMessageProps) {
                 <Badge
                   key={source}
                   variant="ACTIVE"
-                  className="text-[0.6rem] font-mono hover:bg-[var(--color-green)]/10 transition-colors"
+                  className="text-[0.6rem] font-mono hover:bg-green/10 transition-colors"
                 >
                   {source}
                 </Badge>

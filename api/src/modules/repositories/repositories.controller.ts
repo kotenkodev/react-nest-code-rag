@@ -72,6 +72,6 @@ export class RepositoriesController {
 
   @Get('status')
   getStatus(@CurrentUser() user: { email: string }) {
-    return await this.repositoriesService.getStatus(user.email);
+    return this.repositoriesService.getStatus(user.email);
   }
 }

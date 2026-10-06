@@ -20,10 +20,10 @@ export default function Workspace() {
     fileCount?: number;
   }>({
     type: "link",
-    value: "github.com/user/repo",
+    value: "No repository selected",
   });
 
-  const { isOnline, isPending } = useApiStatus();
+  const { isOnline, isError } = useApiStatus();
   const { data: status } = useRepositoryStatus();
 
   const progress = status || {
@@ -86,7 +86,7 @@ export default function Workspace() {
           onClick={() => setMobileTab("search")}
           className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[0.65rem] font-mono transition-all ${
             mobileTab === "search"
-              ? "bg-(--surface-raised) text-green border border-(--border-active) font-medium"
+              ? "bg-(--surface-raised) text-(--text-primary) border border-(--border-active) font-medium"
               : "text-(--text-muted) border border-transparent"
           }`}
         >
@@ -98,7 +98,7 @@ export default function Workspace() {
           onClick={() => setMobileTab("sources")}
           className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-[0.65rem] font-mono transition-all ${
             mobileTab === "sources"
-              ? "bg-(--surface-raised) text-green border border-(--border-active) font-medium"
+              ? "bg-(--surface-raised) text-(--text-primary) border border-(--border-active) font-medium"
               : "text-(--text-muted) border border-transparent"
           }`}
         >
@@ -147,15 +147,11 @@ export default function Workspace() {
                 </Badge>
                 <Badge
                   variant={
-                    isPending ? "OFFLINE" : isOnline ? "SCANNING" : "CRITICAL"
+                    isError ? "CRITICAL" : !isOnline ? "CRITICAL" : "SCANNING"
                   }
                   className="text-[0.6rem] font-mono hidden sm:inline-flex"
                 >
-                  {isPending
-                    ? "RAG ENGINE CHECKING..."
-                    : isOnline
-                      ? "RAG ENGINE ACTIVE"
-                      : "RAG ENGINE INACTIVE"}
+                  {!isOnline ? "RAG ENGINE INACTIVE" : "RAG ENGINE ACTIVE"}
                 </Badge>
               </div>
             </div>
@@ -174,7 +170,7 @@ export default function Workspace() {
             <div className="mx-auto max-w-4xl">
               <form
                 onSubmit={search}
-                className="border border-(--border) bg-(--surface-raised) p-2.5 sm:p-3 transition-all focus-within:border-(--border-active) focus-within:shadow-(--glow-green)"
+                className="border border-(--border) bg-(--surface-raised) p-2.5 sm:p-3 transition-all focus-within:border-(--border-active) focus-within:shadow-[var(--glow-green)]"
               >
                 <div className="mb-2 flex items-center justify-between text-[0.58rem] sm:text-[0.62rem] text-(--text-muted) font-mono">
                   <p>[PROMPT // QUERY ENGINE]</p>
@@ -211,7 +207,7 @@ export default function Workspace() {
                   <Button
                     disabled={
                       isAskPending ||
-                      status?.status === RepositoryStatus.SUCCESS
+                      status?.status !== RepositoryStatus.SUCCESS
                     }
                     type="submit"
                     variant="EXEC"

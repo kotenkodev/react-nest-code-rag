@@ -1,4 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import OpenAI from 'openai';
+import { appConfig, type AppConfig } from '../../config/app.config';
 
 export const CODE_ASSISTANT_SYSTEM_PROMPT = `
 You are an expert AI Code Documentation Assistant.
@@ -12,7 +14,54 @@ Rules:
 
 @Injectable()
 export class LlmserviceService {
+  private readonly logger = new Logger(LlmserviceService.name);
+  private readonly client: OpenAI;
+
+  constructor(
+    @Inject(appConfig.KEY)
+    private readonly config: AppConfig,
+  ) {
+    this.client = new OpenAI({
+      baseURL: this.config.llmBaseUrl || 'https://api.groq.com/openai/v1',
+      apiKey: this.config.llmApiKey,
+    });
+  }
+
   getSystemPrompt(): string {
     return CODE_ASSISTANT_SYSTEM_PROMPT;
+  }
+
+  async generateChatCompletion(
+    userPrompt: string,
+    context: string,
+  ): Promise<string> {
+    const response = await this.client.chat.completions.create({
+      model: this.config.llmModel,
+      messages: [
+        { role: 'system', content: this.getSystemPrompt() },
+        {
+          role: 'user',
+          content: `### CODE CONTEXT:\n${context}\n\n### USER QUESTION:\n${userPrompt}`,
+        },
+      ],
+      temperature: 0.2,
+    });
+
+    return response.choices[0]?.message?.content || '';
+  }
+
+  async streamChatCompletion(userPrompt: string, context: string) {
+    return this.client.chat.completions.create({
+      model: this.config.llmModel,
+      messages: [
+        { role: 'system', content: this.getSystemPrompt() },
+        {
+          role: 'user',
+          content: `### CODE CONTEXT:\n${context}\n\n### USER QUESTION:\n${userPrompt}`,
+        },
+      ],
+      temperature: 0.2,
+      stream: true,
+    });
   }
 }
