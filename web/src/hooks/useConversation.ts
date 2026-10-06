@@ -5,6 +5,7 @@ type ChatAction =
   | { type: "ADD_USER_MESSAGE"; text: string }
   | { type: "START_BOT_MESSAGE"; id: string }
   | { type: "APPEND_BOT_CHUNK"; id: string; chunk: string }
+  | { type: "SET_BOT_SOURCES"; id: string; sources: string[] }
   | { type: "SET_BOT_ERROR"; id: string; errorText: string }
   | { type: "ADD_ERROR_MESSAGE"; text: string }
   | { type: "CLEAR_MESSAGES" };
@@ -21,6 +22,10 @@ function chatReducer(state: ChatMessage[], action: ChatAction): ChatMessage[] {
     case "APPEND_BOT_CHUNK":
       return state.map((msg) =>
         msg.id === action.id ? { ...msg, text: msg.text + action.chunk } : msg,
+      );
+    case "SET_BOT_SOURCES":
+      return state.map((msg) =>
+        msg.id === action.id ? { ...msg, sources: action.sources } : msg,
       );
     case "SET_BOT_ERROR":
       return state.map((msg) =>
@@ -63,11 +68,14 @@ export function useConversation() {
     dispatch({ type: "START_BOT_MESSAGE", id });
   const appendBotChunk = (id: string, chunk: string) =>
     dispatch({ type: "APPEND_BOT_CHUNK", id, chunk });
+  const setBotSources = (id: string, sources: string[]) =>
+    dispatch({ type: "SET_BOT_SOURCES", id, sources });
 
   return {
     messages,
     startBotMessage,
     appendBotChunk,
+    setBotSources,
     setBotError,
     addUserMessage,
     addErrorMessage,

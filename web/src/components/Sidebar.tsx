@@ -1,5 +1,5 @@
 import { RepositoryStatus } from "@/types/repository-status.type";
-import { Link2, Archive, Folder, GitBranch } from "lucide-react";
+import { Link2, Archive, Folder } from "lucide-react";
 import { FolderUpload } from "./FolderUpload";
 import { Badge } from "./ui/badge/badge";
 

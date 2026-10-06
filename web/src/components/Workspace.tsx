@@ -37,6 +37,7 @@ export default function Workspace() {
     addUserMessage,
     startBotMessage,
     appendBotChunk,
+    setBotSources,
     setBotError,
     clearMessages,
   } = useConversation();
@@ -65,6 +66,7 @@ export default function Workspace() {
       await askChat({
         query: trimmed,
         onChunk: (chunk) => appendBotChunk(botMessageId, chunk),
+        onSources: (sources) => setBotSources(botMessageId, sources),
       });
     } catch (err) {
       setBotError(

@@ -1,4 +1,5 @@
 import { Body, Controller, Post, Res, UseGuards } from '@nestjs/common';
+import type { Response } from 'express';
 import { QueryDto } from './dto/query.dto';
 import { AuthGuard } from '../../shared/guards/auth.guard';
 import { CurrentUser } from '../../shared/decorators/current-user.decorator';
@@ -11,21 +12,29 @@ export class RagController {
 
   @Post('query')
   async answerQuestion(
-    @CurrentUser() user,
+    @CurrentUser() user: { email: string },
     @Body() dto: QueryDto,
     @Res() response: Response,
   ) {
-    // const context = await this.chatService.getContext(user, body.query);
-    // response.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    // response.setHeader('Transfer-Encoding', 'chunked');
-    // const result = await this.ragService.generateReplyStream(
-    //   body.query,
-    //   context,
-    // );
-    // for await (const chunk of result.stream) {
-    //   const text = chunk.text();
-    //   response.write(text);
-    // }
-    // response.end();
+    const { stream, sources } = await this.ragService.prepareRagStream(
+      user.email,
+      dto.query,
+    );
+
+    response.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+    response.setHeader('Cache-Control', 'no-cache');
+    response.setHeader('Connection', 'keep-alive');
+
+    response.write(`data: ${JSON.stringify({ type: 'sources', sources })}\n\n`);
+
+    for await (const chunk of stream) {
+      const text = chunk.choices[0]?.delta?.content || '';
+      if (text) {
+        response.write(`data: ${JSON.stringify({ type: 'delta', text })}\n\n`);
+      }
+    }
+
+    response.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
+    response.end();
   }
 }

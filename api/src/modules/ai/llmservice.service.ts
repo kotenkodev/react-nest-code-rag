@@ -12,6 +12,11 @@ Rules:
 4. Structure explanations with headings, bullet points, and code snippets where helpful.
 `;
 
+export interface AiAnswerResponse {
+  answer: string;
+  sources: string[];
+}
+
 @Injectable()
 export class LlmserviceService {
   private readonly logger = new Logger(LlmserviceService.name);
@@ -34,20 +39,29 @@ export class LlmserviceService {
   async generateChatCompletion(
     userPrompt: string,
     context: string,
-  ): Promise<string> {
+  ): Promise<AiAnswerResponse> {
     const response = await this.client.chat.completions.create({
       model: this.config.llmModel,
+      response_format: { type: 'json_object' },
       messages: [
-        { role: 'system', content: this.getSystemPrompt() },
+        {
+          role: 'system',
+          content: `${this.getSystemPrompt()}
+            You must output a valid JSON object with the following schema:
+            {
+              "answer": "markdown formatted explanation with citations",
+              "sources": ["src/path/file.ts:10-30", "src/path/another.ts"]
+            }`,
+        },
         {
           role: 'user',
           content: `### CODE CONTEXT:\n${context}\n\n### USER QUESTION:\n${userPrompt}`,
         },
       ],
-      temperature: 0.2,
+      temperature: 0.1,
     });
-
-    return response.choices[0]?.message?.content || '';
+    const rawJson = response.choices[0]?.message?.content || '{}';
+    return JSON.parse(rawJson) as AiAnswerResponse;
   }
 
   async streamChatCompletion(userPrompt: string, context: string) {

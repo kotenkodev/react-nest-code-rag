@@ -77,7 +77,7 @@ const variantTag: VariantElement = {
 }
 
 export interface TypographyProps
-  extends React.HTMLAttributes<HTMLElement>,
+  extends Omit<React.HTMLAttributes<HTMLElement>, 'color'>,
     VariantProps<typeof typographyVariants> {
   as?: keyof React.JSX.IntrinsicElements
 }

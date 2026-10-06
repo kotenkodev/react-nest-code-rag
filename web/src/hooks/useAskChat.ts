@@ -4,13 +4,14 @@ import { useMutation } from "@tanstack/react-query";
 interface AskChatParams {
   query: string;
   onChunk?: (chunk: string) => void;
+  onSources?: (sources: string[]) => void;
 }
 
 export const useAskChat = () => {
   const user = useAuthStore((s) => s.user);
 
   return useMutation({
-    mutationFn: async ({ query, onChunk }: AskChatParams) => {
+    mutationFn: async ({ query, onChunk, onSources }: AskChatParams) => {
       const response = await fetch("http://localhost:3000/rag/query", {
         method: "POST",
         headers: {
@@ -27,14 +28,32 @@ export const useAskChat = () => {
       const reader = response.body.getReader();
       const decoder = new TextDecoder("utf-8");
       let fullText = "";
+      let buffer = "";
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        const chunk = decoder.decode(value, { stream: true });
-        fullText += chunk;
-        onChunk?.(chunk);
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed.startsWith("data: ")) continue;
+
+          try {
+            const data = JSON.parse(trimmed.slice(6));
+            if (data.type === "sources" && Array.isArray(data.sources)) {
+              onSources?.(data.sources);
+            } else if (data.type === "delta" && data.text) {
+              fullText += data.text;
+              onChunk?.(data.text);
+            }
+          } catch {
+            // Ignore non-JSON SSE lines
+          }
+        }
       }
 
       return fullText;
