@@ -1,0 +1,49 @@
+services:
+  # API Service
+  - type: web
+    name: react-nest-api
+    env: docker
+    rootDir: api
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: react-nest-db
+          property: connectionString
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3000"
+      - key: CORS_ORIGINS
+        value: "*" # You can restrict this to the web URL once deployed
+      - key: EMBEDDING_BASE_URL
+        value: "https://api.jina.ai/v1"
+      - key: EMBEDDING_API_KEY
+        sync: false # Requires manual setup in the Render dashboard
+      - key: EMBEDDING_MODEL
+        value: "jina-embeddings-v3"
+      - key: LLM_BASE_URL
+        value: "https://api.groq.com/openai/v1"
+      - key: LLM_API_KEY
+        sync: false # Requires manual setup in the Render dashboard
+      - key: LLM_MODEL
+        value: "openai/gpt-oss-120b"
+
+  # Web Frontend
+  - type: web
+    name: react-nest-web
+    env: static
+    rootDir: web
+    buildCommand: npm install && npm run build
+    publishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        # We set this to the external URL of the API.
+        # Alternatively, you can update this in the Render dashboard after the API is created.
+        value: "https://react-nest-api.onrender.com" 
+
+databases:
+  - name: react-nest-db
+    databaseName: nest_db
+    user: postgres
+    plan: free # Change to a paid plan if needed for production

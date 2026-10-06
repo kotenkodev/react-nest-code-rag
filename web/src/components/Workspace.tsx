@@ -76,6 +76,8 @@ export default function Workspace() {
   const { mutate: deleteRepository, isPending: isDeleting } = useDeleteRepository();
   const { mutateAsync: askChat, isPending: isAskPending } = useAskChat();
 
+  const isReadyToAsk = status?.status === RepositoryStatus.SUCCESS && !isAskPending;
+
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -87,7 +89,7 @@ export default function Workspace() {
   async function search(event: FormEvent) {
     event.preventDefault();
     const trimmed = question.trim();
-    if (!trimmed || isAskPending) return;
+    if (!trimmed || !isReadyToAsk) return;
 
     addUserMessage(trimmed);
     setQuestion("");
@@ -277,6 +279,7 @@ export default function Workspace() {
                   <span className="hidden xs:inline">ENTER TO SEARCH</span>
                 </div>
                 <Textarea
+                  disabled={!isReadyToAsk}
                   value={question}
                   onChange={(event) => {
                     setQuestion(event.target.value);
@@ -284,11 +287,23 @@ export default function Workspace() {
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
-                      search(e);
+                      if (isReadyToAsk && question.trim()) {
+                        search(e);
+                      }
                     }
                   }}
-                  placeholder="Ask where something is implemented, trace call graphs, or search functions..."
-                  className="min-h-12.5 sm:min-h-15 max-h-35 border-none bg-transparent p-0 text-xs sm:text-sm shadow-none focus:border-none focus:shadow-none focus:outline-none"
+                  placeholder={
+                    status?.status === RepositoryStatus.PENDING
+                      ? "Repository indexing in progress... Please wait."
+                      : status?.status === RepositoryStatus.FAILED
+                        ? "Indexing failed. Please reset or upload a repository."
+                        : status?.status !== RepositoryStatus.SUCCESS
+                          ? "Select or upload a codebase to start asking questions..."
+                          : isAskPending
+                            ? "Generating response..."
+                            : "Ask where something is implemented, trace call graphs, or search functions..."
+                  }
+                  className="min-h-12.5 sm:min-h-15 max-h-35 border-none bg-transparent p-0 text-xs sm:text-sm shadow-none focus:border-none focus:shadow-none focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                 />
                 <div className="mt-2 flex items-center justify-between border-t border-(--border) pt-2">
                   <Button
@@ -305,10 +320,7 @@ export default function Workspace() {
                     Shift + Enter for new line
                   </span>
                   <Button
-                    disabled={
-                      isAskPending ||
-                      status?.status !== RepositoryStatus.SUCCESS
-                    }
+                    disabled={!isReadyToAsk || !question.trim()}
                     type="submit"
                     variant="EXEC"
                     size="SM"

@@ -12,5 +12,32 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: nest_api
+    restart: always
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@db:5432/nest_db?schema=public
+      - PORT=3000
+      - NODE_ENV=production
+      - CORS_ORIGINS=http://localhost:5173
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: react_web
+    restart: always
+    ports:
+      - "5173:80"
+    depends_on:
+      - api
+
 volumes:
   postgres_data:
