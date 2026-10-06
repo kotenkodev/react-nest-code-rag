@@ -2,7 +2,7 @@
 CREATE EXTENSION IF NOT EXISTS "vector";
 
 -- CreateEnum
-CREATE TYPE "RepositoryStatus" AS ENUM ('PENDING', 'SUCCESS', 'FAILED');
+CREATE TYPE "RepositoryStatus" AS ENUM ('SUCCESS', 'PENDING', 'FAILED');
 
 -- CreateTable
 CREATE TABLE "User" (
@@ -37,7 +37,7 @@ CREATE TABLE "CodeChunk" (
     "startLine" INTEGER NOT NULL,
     "endLine" INTEGER NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "embedding" vector(1536) NOT NULL,
+    "embedding" vector(1024) NOT NULL,
 
     CONSTRAINT "CodeChunk_pkey" PRIMARY KEY ("id")
 );
@@ -53,5 +53,3 @@ ALTER TABLE "User" ADD CONSTRAINT "User_repositoryId_fkey" FOREIGN KEY ("reposit
 
 -- AddForeignKey
 ALTER TABLE "CodeChunk" ADD CONSTRAINT "CodeChunk_repositoryId_fkey" FOREIGN KEY ("repositoryId") REFERENCES "Repository"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
-CREATE INDEX codechunk_embedding_idx ON "CodeChunk" USING hnsw (embedding vector_cosine_ops);
