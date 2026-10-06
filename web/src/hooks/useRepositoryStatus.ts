@@ -4,6 +4,9 @@ import { RepositoryStatus } from "@/types/repository-status.type";
 import { useQuery } from "@tanstack/react-query";
 
 export type RepositoryProgress = {
+  id?: string;
+  name?: string;
+  url?: string | null;
   status: RepositoryStatus;
   processedFilesCount: number;
   totalFilesCount: number;

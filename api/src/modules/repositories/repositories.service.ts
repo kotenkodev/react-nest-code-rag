@@ -10,6 +10,9 @@ export interface ExtractedFile {
 }
 
 export interface RepositoryProgressStatus {
+  id?: string;
+  name?: string;
+  url?: string | null;
   status: string;
   processedFilesCount: number;
   totalFilesCount: number;
@@ -261,6 +264,9 @@ export class RepositoriesService {
     });
 
     return {
+      id: userRecord?.repository?.id,
+      name: userRecord?.repository?.name,
+      url: userRecord?.repository?.url,
       status: userRecord?.repository?.status || 'IDLE',
       processedFilesCount: userRecord?.repository?.processedFilesCount || 0,
       totalFilesCount: userRecord?.repository?.totalFilesCount || 0,

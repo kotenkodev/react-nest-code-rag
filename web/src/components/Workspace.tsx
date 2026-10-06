@@ -10,6 +10,12 @@ import { useConversation } from "@/hooks/useConversation";
 import Sidebar from "./Sidebar";
 import { useRepositoryStatus } from "@/hooks/useRepositoryStatus";
 import { useAskChat } from "@/hooks/useAskChat";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./ui/tooltip/tooltip";
 
 export default function Workspace() {
   const [mobileTab, setMobileTab] = useState<"search" | "sources">("search");
@@ -31,6 +37,16 @@ export default function Workspace() {
     processedFilesCount: 0,
     totalFilesCount: 0,
   };
+
+  useEffect(() => {
+    if (status?.name || status?.url) {
+      setActiveSource({
+        type: status.url ? "link" : "folder",
+        value: status.url || status.name || "Active Repository",
+        fileCount: status.totalFilesCount,
+      });
+    }
+  }, [status?.name, status?.url, status?.totalFilesCount]);
 
   const {
     messages,
@@ -113,6 +129,7 @@ export default function Workspace() {
         <Sidebar
           mobileTab={mobileTab}
           activeSource={activeSource}
+          status={progress}
           onSourceSelected={setActiveSource}
         />
 
@@ -133,28 +150,67 @@ export default function Workspace() {
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
-                <Badge
-                  variant={
-                    progress.status === RepositoryStatus.SUCCESS
-                      ? "ACTIVE"
-                      : "OFFLINE"
-                  }
-                  className="text-[0.6rem] sm:text-xs"
-                >
-                  {progress.status === RepositoryStatus.PENDING
-                    ? `PENDING (${progress.processedFilesCount}/${progress.totalFilesCount})`
-                    : progress.status === RepositoryStatus.IDLE
-                      ? "IDLE"
-                      : progress.status}
-                </Badge>
-                <Badge
-                  variant={
-                    isError ? "CRITICAL" : !isOnline ? "CRITICAL" : "SCANNING"
-                  }
-                  className="text-[0.6rem] font-mono hidden sm:inline-flex"
-                >
-                  {!isOnline ? "RAG ENGINE INACTIVE" : "RAG ENGINE ACTIVE"}
-                </Badge>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="cursor-help inline-flex">
+                        <Badge
+                          variant={
+                            progress.status === RepositoryStatus.SUCCESS
+                              ? "ACTIVE"
+                              : progress.status === RepositoryStatus.FAILED
+                                ? "CRITICAL"
+                                : progress.status === RepositoryStatus.PENDING
+                                  ? "SCANNING"
+                                  : "OFFLINE"
+                          }
+                          className="text-[0.6rem] sm:text-xs"
+                        >
+                          {progress.status === RepositoryStatus.PENDING
+                            ? `PENDING (${progress.processedFilesCount}/${progress.totalFilesCount})`
+                            : progress.status === RepositoryStatus.IDLE
+                              ? "IDLE"
+                              : progress.status}
+                        </Badge>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-xs normal-case">
+                      {progress.errorMessage ? (
+                        <span className="text-red-400 font-sans">
+                          {progress.errorMessage}
+                        </span>
+                      ) : progress.status === RepositoryStatus.PENDING ? (
+                        `Processing repository (${progress.processedFilesCount} / ${progress.totalFilesCount} files completed)`
+                      ) : progress.status === RepositoryStatus.SUCCESS ? (
+                        `Codebase ready (${progress.totalFilesCount} files indexed)`
+                      ) : progress.status === RepositoryStatus.FAILED ? (
+                        "Repository indexing failed"
+                      ) : (
+                        "No repository indexed"
+                      )}
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="cursor-help inline-flex">
+                        <Badge
+                          variant={
+                            isError ? "CRITICAL" : !isOnline ? "CRITICAL" : "SCANNING"
+                          }
+                          className="text-[0.6rem] font-mono hidden sm:inline-flex"
+                        >
+                          {!isOnline ? "RAG ENGINE INACTIVE" : "RAG ENGINE ACTIVE"}
+                        </Badge>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-xs normal-case">
+                      {!isOnline || isError
+                        ? "API server is currently unreachable. Make sure backend is running on port 3000."
+                        : "RAG query engine is operational with Jina AI Vector Search & Groq LLM."}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
             </div>
           </div>

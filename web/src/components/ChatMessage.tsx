@@ -1,5 +1,6 @@
 import { FileCode2, Sparkles, User } from "lucide-react";
 import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Badge } from "./ui/badge/badge";
 import { Panel, PanelContent, PanelHeader, PanelTitle } from "./ui/panel/panel";
 import { cn } from "@/lib/utils";
@@ -66,7 +67,7 @@ export default function ChatMessage({ message, className }: ChatMessageProps) {
         )}
       </PanelHeader>
 
-      <PanelContent className="space-y-3.5 p-3 sm:p-4 text-[0.75rem] sm:text-xs leading-relaxed">
+      <PanelContent className="space-y-3.5 p-3 sm:p-4 text-[0.75rem] sm:text-xs leading-relaxed overflow-hidden">
         {isUser ? (
           <p className="text-(--text-secondary) whitespace-pre-wrap font-sans font-normal">
             {message.text}
@@ -74,11 +75,57 @@ export default function ChatMessage({ message, className }: ChatMessageProps) {
         ) : (
           <div className="text-(--text-secondary) space-y-2 prose-sm max-w-none">
             <Markdown
+              remarkPlugins={[remarkGfm]}
               components={{
                 p: ({ children }) => (
-                  <p className="text-(--text-secondary) leading-relaxed mb-2 last:mb-0">
+                  <p className="text-(--text-secondary) leading-relaxed mb-2.5 last:mb-0">
                     {children}
                   </p>
+                ),
+                h1: ({ children }) => (
+                  <h1 className="text-sm font-bold font-mono text-(--text-primary) mt-3 mb-1.5 pb-1 border-b border-(--border)">
+                    {children}
+                  </h1>
+                ),
+                h2: ({ children }) => (
+                  <h2 className="text-xs font-bold font-mono text-(--text-primary) mt-3 mb-1.5">
+                    {children}
+                  </h2>
+                ),
+                h3: ({ children }) => (
+                  <h3 className="text-xs font-semibold font-mono text-(--text-secondary) mt-2.5 mb-1">
+                    {children}
+                  </h3>
+                ),
+                table: ({ children }) => (
+                  <div className="my-3 w-full overflow-x-auto border border-(--border)">
+                    <table className="w-full text-left text-[0.7rem] font-mono border-collapse">
+                      {children}
+                    </table>
+                  </div>
+                ),
+                thead: ({ children }) => (
+                  <thead className="bg-(--surface-raised) text-(--text-primary) border-b border-(--border)">
+                    {children}
+                  </thead>
+                ),
+                tbody: ({ children }) => (
+                  <tbody className="divide-y divide-(--border)">{children}</tbody>
+                ),
+                tr: ({ children }) => (
+                  <tr className="hover:bg-(--surface-raised)/40 transition-colors">
+                    {children}
+                  </tr>
+                ),
+                th: ({ children }) => (
+                  <th className="px-2.5 py-1.5 font-bold uppercase tracking-wider text-[0.65rem] border-r border-(--border) last:border-r-0">
+                    {children}
+                  </th>
+                ),
+                td: ({ children }) => (
+                  <td className="px-2.5 py-1.5 text-(--text-secondary) border-r border-(--border) last:border-r-0 align-top">
+                    {children}
+                  </td>
                 ),
                 code: ({ className, children, ...props }) => {
                   const isInline =

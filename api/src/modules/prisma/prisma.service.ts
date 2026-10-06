@@ -38,4 +38,26 @@ export class PrismaService
     LIMIT ${limit};
   `;
   }
+
+  async createCodeChunksBatch(
+    chunks: Array<{
+      repositoryId: string;
+      filePath: string;
+      content: string;
+      startLine: number;
+      endLine: number;
+      embedding: number[];
+    }>,
+  ) {
+    if (!chunks.length) return;
+
+    for (const chunk of chunks) {
+      const vectorStr = `[${chunk.embedding.join(',')}]`;
+      const id = crypto.randomUUID();
+      await this.$executeRaw`
+        INSERT INTO "CodeChunk" ("id", "repositoryId", "filePath", "content", "startLine", "endLine", "createdAt", "embedding")
+        VALUES (${id}, ${chunk.repositoryId}, ${chunk.filePath}, ${chunk.content}, ${chunk.startLine}, ${chunk.endLine}, NOW(), ${vectorStr}::vector);
+      `;
+    }
+  }
 }

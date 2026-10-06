@@ -1,6 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 
-export type ThemeType = "default" | "star-wars" | "alien" | "cyberpunk" | "light";
+export type ThemeType =
+  | "default"
+  | "star-wars"
+  | "alien"
+  | "cyberpunk"
+  | "light";
 
 export interface ThemeOption {
   id: ThemeType;
@@ -10,11 +15,36 @@ export interface ThemeOption {
 }
 
 export const THEME_OPTIONS: ThemeOption[] = [
-  { id: "default", label: "MATRIX", color: "#00ed3f", glowColor: "rgba(0, 237, 63, 0.4)" },
-  { id: "star-wars", label: "HOLO BLUE", color: "#1a6dff", glowColor: "rgba(26, 109, 255, 0.4)" },
-  { id: "alien", label: "NOSTROMO", color: "#E0D5BE", glowColor: "rgba(224, 213, 190, 0.4)" },
-  { id: "cyberpunk", label: "CYBERPUNK", color: "#FF0080", glowColor: "rgba(255, 0, 128, 0.4)" },
-  { id: "light", label: "LAB LIGHT", color: "#0062E6", glowColor: "rgba(0, 98, 230, 0.4)" },
+  {
+    id: "default",
+    label: "MATRIX",
+    color: "#00ed3f",
+    glowColor: "rgba(0, 237, 63, 0.4)",
+  },
+  {
+    id: "star-wars",
+    label: "HOLO BLUE",
+    color: "#1a6dff",
+    glowColor: "rgba(26, 109, 255, 0.4)",
+  },
+  {
+    id: "alien",
+    label: "NOSTROMO",
+    color: "#E0D5BE",
+    glowColor: "rgba(224, 213, 190, 0.4)",
+  },
+  {
+    id: "cyberpunk",
+    label: "CYBERPUNK",
+    color: "#FF0080",
+    glowColor: "rgba(255, 0, 128, 0.4)",
+  },
+  {
+    id: "light",
+    label: "LAB LIGHT",
+    color: "#0062E6",
+    glowColor: "rgba(0, 98, 230, 0.4)",
+  },
 ];
 
 const THEME_STORAGE_KEY = "scifi-rag-theme";
@@ -58,6 +88,7 @@ export function useTheme() {
     setTheme,
     cycleTheme,
     options: THEME_OPTIONS,
-    currentThemeOption: THEME_OPTIONS.find((t) => t.id === theme) || THEME_OPTIONS[0],
+    currentThemeOption:
+      THEME_OPTIONS.find((t) => t.id === theme) || THEME_OPTIONS[0],
   };
 }

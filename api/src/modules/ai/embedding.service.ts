@@ -20,9 +20,11 @@ export class EmbeddingService {
   async embedText(text: string): Promise<number[]> {
     if (!text || !text.trim()) return [];
 
+    const safeText = text.slice(0, 8000);
     const response = await this.client.embeddings.create({
       model: this.config.embeddingModel,
-      input: text,
+      input: safeText,
+      ...({ truncate: true } as Record<string, unknown>),
     });
 
     return response.data[0].embedding;
@@ -31,9 +33,11 @@ export class EmbeddingService {
   async embedBatch(texts: string[]): Promise<number[][]> {
     if (!texts.length) return [];
 
+    const safeTexts = texts.map((t) => t.slice(0, 8000));
     const response = await this.client.embeddings.create({
       model: this.config.embeddingModel,
-      input: texts,
+      input: safeTexts,
+      ...({ truncate: true } as Record<string, unknown>),
     });
 
     return response.data.map((item) => item.embedding);

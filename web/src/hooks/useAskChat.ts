@@ -7,12 +7,14 @@ interface AskChatParams {
   onSources?: (sources: string[]) => void;
 }
 
+const baseUrl = import.meta.env.VITE_API_URL;
+
 export const useAskChat = () => {
   const user = useAuthStore((s) => s.user);
 
   return useMutation({
     mutationFn: async ({ query, onChunk, onSources }: AskChatParams) => {
-      const response = await fetch("http://localhost:3000/rag/query", {
+      const response = await fetch(`${baseUrl}/api/rag/query`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

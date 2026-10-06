@@ -6,6 +6,7 @@ import {
   type FormEvent,
   type DragEvent,
 } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Input } from "./ui/input/input";
 import { Button } from "./ui/button/button";
 import {
@@ -81,6 +82,7 @@ export function FolderUpload({
   onSourceSelected,
   className = "",
 }: FolderUploadProps) {
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<"link" | "folder">("link");
 
   // Git Repo Link state
@@ -301,6 +303,7 @@ export function FolderUpload({
 
       setIsUploading(false);
       setUploadSuccess(true);
+      queryClient.invalidateQueries({ queryKey: ["repository", "status"] });
       const isZip = files.some((f) => f.name.toLowerCase().endsWith(".zip"));
       const serverMsg = response.data?.message || "Uploaded successfully!";
       setFolderMessage(serverMsg);
@@ -320,6 +323,7 @@ export function FolderUpload({
       });
     } catch (err: any) {
       setIsUploading(false);
+      queryClient.invalidateQueries({ queryKey: ["repository", "status"] });
       const errDetail =
         err.response?.data?.message ||
         "Upload failed. Please verify the server connection.";
@@ -347,6 +351,7 @@ export function FolderUpload({
       });
 
       setLinkStatus("success");
+      queryClient.invalidateQueries({ queryKey: ["repository", "status"] });
       setLinkMessage(
         response.data?.message ||
           `Downloaded and indexed ${response.data?.fileCount || 0} files.`,
@@ -362,6 +367,7 @@ export function FolderUpload({
       });
     } catch (err: any) {
       setLinkStatus("error");
+      queryClient.invalidateQueries({ queryKey: ["repository", "status"] });
       const errDetail =
         err.response?.data?.message ||
         "Failed to download repository ZIP archive from GitHub.";
