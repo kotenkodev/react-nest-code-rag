@@ -3,6 +3,7 @@ services:
   - type: web
     name: react-nest-api
     env: docker
+    plan: free
     rootDir: api
     dockerfilePath: ./Dockerfile
     envVars:
@@ -35,7 +36,7 @@ services:
     env: static
     rootDir: web
     buildCommand: npm install && npm run build
-    publishPath: dist
+    staticPublishPath: dist
     envVars:
       - key: VITE_API_URL
         # We set this to the external URL of the API.
@@ -45,5 +46,4 @@ services:
 databases:
   - name: react-nest-db
     databaseName: nest_db
-    user: postgres
     plan: free # Change to a paid plan if needed for production
