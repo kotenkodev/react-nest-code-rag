@@ -24,8 +24,8 @@ import {
 } from "lucide-react";
 import axios from "@/lib/axios";
 
-const MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024; // 2MB per file/zip
-const MAX_BATCH_SIZE_BYTES = 100 * 1024 * 1024; // 10MB total batch
+const MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024;
+const MAX_BATCH_SIZE_BYTES = 100 * 1024 * 1024;
 
 export interface FolderUploadProps {
   onSourceSelected?: (source: {
@@ -85,10 +85,7 @@ export function FolderUpload({
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<"link" | "folder">("link");
 
-  // Git Repo Link state
-  const [repoUrl, setRepoUrl] = useState(
-    "https://github.com/kotenkodev/react-nest-ai-pdf-rag",
-  );
+  const [repoUrl, setRepoUrl] = useState("");
   const [branch, setBranch] = useState("main");
   const [linkStatus, setLinkStatus] = useState<
     "idle" | "loading" | "success" | "error"
@@ -96,7 +93,6 @@ export function FolderUpload({
   const [linkMessage, setLinkMessage] = useState("");
   const [linkError, setLinkError] = useState("");
 
-  // Folder, Multi-File, and Zip upload state
   const [files, setFiles] = useState<File[]>([]);
   const [folderError, setFolderError] = useState("");
   const [folderMessage, setFolderMessage] = useState("");
@@ -108,10 +104,9 @@ export function FolderUpload({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const zipInputRef = useRef<HTMLInputElement>(null);
 
-  // Compute the expected GitHub Zip download URL preview
   const previewZipUrl = useMemo(() => {
     const trimmed = repoUrl.trim();
-    if (!trimmed || trimmed === "https://github.com/kotenkodev/") return "";
+    if (!trimmed) return "";
     if (trimmed.endsWith(".zip")) return trimmed;
 
     const cleaned = trimmed.replace(/\.git$/, "").replace(/\/+$/, "");
@@ -137,7 +132,6 @@ export function FolderUpload({
   const totalSizeBytes = files.reduce((acc, f) => acc + f.size, 0);
   const formattedSize = (totalSizeBytes / (1024 * 1024)).toFixed(2);
 
-  // Group files into high-level items (folders, zip files, individual loose files)
   const groupedItems = useMemo<GroupedItem[]>(() => {
     const map = new Map<string, GroupedItem>();
 

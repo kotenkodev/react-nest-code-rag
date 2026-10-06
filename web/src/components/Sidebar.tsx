@@ -1,8 +1,11 @@
 import { RepositoryStatus } from "@/types/repository-status.type";
-import { Link2, Archive, Folder } from "lucide-react";
+import { Link2, Archive, Folder, Trash2 } from "lucide-react";
 import { FolderUpload } from "./FolderUpload";
 import { Badge } from "./ui/badge/badge";
+import { Button } from "./ui/button/button";
+import { useDeleteRepository } from "@/hooks/useRepository";
 import type { RepositoryProgress } from "@/hooks/useRepositoryStatus";
+import { formatErrorMessage } from "@/lib/error-formatter";
 import {
   Tooltip,
   TooltipContent,
@@ -32,6 +35,18 @@ export default function Sidebar({
   onSourceSelected,
 }: SidebarProps) {
   const currentStatus = status?.status ?? RepositoryStatus.IDLE;
+  const { mutateAsync: deleteRepo, isPending: isDeleting } =
+    useDeleteRepository();
+
+  const handleClearIndex = async () => {
+    try {
+      await deleteRepo();
+      onSourceSelected({
+        type: "link",
+        value: "No repository selected",
+      });
+    } catch {}
+  };
 
   return (
     <aside
@@ -40,18 +55,38 @@ export default function Sidebar({
       }`}
     >
       <div className="border-b border-(--border) p-3 sm:p-4">
-        <div className="mb-2 text-[0.6rem] tracking-[0.16em] text-(--text-muted) font-mono">
-          ACTIVE SOURCE
-        </div>
-        <div className="mb-3 flex items-center gap-2 text-xs text-(--text-secondary) font-mono min-w-0">
-          {activeSource.type === "link" ? (
-            <Link2 size={13} className="text-(--text-primary) shrink-0" />
-          ) : activeSource.type === "zip" ? (
-            <Archive size={13} className="text-(--text-primary) shrink-0" />
-          ) : (
-            <Folder size={13} className="text-(--text-primary) shrink-0" />
+        <div className="mb-2 flex items-center justify-between text-[0.6rem] tracking-[0.16em] text-(--text-muted) font-mono">
+          <span>ACTIVE SOURCE</span>
+          {currentStatus !== RepositoryStatus.IDLE && (
+            <button
+              type="button"
+              onClick={handleClearIndex}
+              disabled={isDeleting}
+              className="text-(--text-muted) hover:text-(--text-warning) flex items-center gap-1 transition-colors disabled:opacity-50"
+              title="Clear all indexed files and chunks"
+            >
+              <Trash2 size={11} />
+              <span>{isDeleting ? "CLEARING..." : "CLEAR"}</span>
+            </button>
           )}
-          <span className="truncate font-medium">{activeSource.value}</span>
+        </div>
+        <div className="mb-3 flex items-center justify-between gap-2 text-xs text-(--text-secondary) font-mono min-w-0">
+          <div className="flex items-center gap-2 truncate">
+            {activeSource.type === "link" ? (
+              <Link2 size={13} className="text-(--text-primary) shrink-0" />
+            ) : activeSource.type === "zip" ? (
+              <Archive size={13} className="text-(--text-primary) shrink-0" />
+            ) : (
+              <Folder size={13} className="text-(--text-primary) shrink-0" />
+            )}
+            <span className="truncate font-medium">{activeSource.value}</span>
+          </div>
+          {currentStatus === RepositoryStatus.SUCCESS &&
+            (status?.totalFilesCount ?? 0) > 0 && (
+              <span className="shrink-0 text-[0.6rem] font-mono text-(--text-muted)">
+                {status?.totalFilesCount} files
+              </span>
+            )}
         </div>
 
         <FolderUpload
@@ -60,6 +95,22 @@ export default function Sidebar({
           }}
           className="mt-2"
         />
+
+        {currentStatus !== RepositoryStatus.IDLE && (
+          <div className="mt-3">
+            <Button
+              type="button"
+              variant="ABORT"
+              size="SM"
+              disabled={isDeleting}
+              onClick={handleClearIndex}
+              className="w-full text-[0.6rem] py-1 gap-1"
+            >
+              <Trash2 size={11} />
+              <span>{isDeleting ? "CLEARING INDEX..." : "CLEAR INDEXING"}</span>
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className="flex h-10 sm:h-11 shrink-0 items-center justify-between border-b border-(--border) px-3 sm:px-4 text-[0.65rem] font-mono text-(--text-muted)">
@@ -82,14 +133,16 @@ export default function Sidebar({
                 >
                   {currentStatus === RepositoryStatus.PENDING
                     ? `PENDING (${status?.processedFilesCount ?? 0}/${status?.totalFilesCount ?? 0})`
-                    : currentStatus}
+                    : currentStatus === RepositoryStatus.SUCCESS
+                      ? `SUCCESS (${status?.totalFilesCount ?? 0} FILES)`
+                      : currentStatus}
                 </Badge>
               </div>
             </TooltipTrigger>
             <TooltipContent side="top" className="max-w-xs normal-case">
               {status?.errorMessage ? (
                 <span className="text-red-400 font-sans">
-                  Error: {status.errorMessage}
+                  {formatErrorMessage(status.errorMessage)}
                 </span>
               ) : currentStatus === RepositoryStatus.PENDING ? (
                 `Indexing files (${status?.processedFilesCount ?? 0} of ${status?.totalFilesCount ?? 0}). Chunks are being vectorized.`

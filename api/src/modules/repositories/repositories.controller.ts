@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Logger,
   MaxFileSizeValidator,
@@ -116,5 +117,10 @@ export class RepositoriesController {
   @Get('status')
   getStatus(@CurrentUser() user: { email: string }) {
     return this.repositoriesService.getStatus(user.email);
+  }
+
+  @Delete()
+  deleteRepository(@CurrentUser() user: { email: string }) {
+    return this.repositoriesService.deleteRepository(user.email);
   }
 }

@@ -1,10 +1,11 @@
-import { FileCode2, Sparkles, User } from "lucide-react";
+import { AlertTriangle, FileCode2, Loader2, Sparkles, User } from "lucide-react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Badge } from "./ui/badge/badge";
 import { Panel, PanelContent, PanelHeader, PanelTitle } from "./ui/panel/panel";
 import { cn } from "@/lib/utils";
 import type { ChatMessage } from "@/types/message.type";
+import { formatErrorMessage } from "@/lib/error-formatter";
 
 interface ChatMessageProps {
   message: ChatMessage;
@@ -21,20 +22,30 @@ export default function ChatMessage({ message, className }: ChatMessageProps) {
         "mb-4 transition-all duration-200",
         isUser
           ? "border-(--border) bg-(--surface)/70 border-l-[3px] border-l-(--text-muted)"
-          : "border-(--border) bg-(--surface) border-l-[3px] border-l-(--accent-primary) shadow-(--glow-green)",
+          : message.isError
+            ? "border-red-900/50 bg-red-950/20 border-l-[3px] border-l-red-500 shadow-[0_0_15px_rgba(239,68,68,0.1)]"
+            : "border-(--border) bg-(--surface) border-l-[3px] border-l-(--accent-primary) shadow-(--glow-green)",
         className,
       )}
     >
       <PanelHeader
         className={cn(
           "px-3 sm:px-4 py-2 flex items-center justify-between",
-          isUser ? "bg-(--surface-raised)/60" : "bg-(--surface-raised)",
+          isUser
+            ? "bg-(--surface-raised)/60"
+            : message.isError
+              ? "bg-red-950/40"
+              : "bg-(--surface-raised)",
         )}
       >
         <div className="flex items-center gap-2">
           {isUser ? (
             <div className="flex items-center justify-center w-5 h-5 rounded-none bg-(--surface) border border-(--border) text-(--text-muted)">
               <User size={12} />
+            </div>
+          ) : message.isError ? (
+            <div className="flex items-center justify-center w-5 h-5 rounded-none bg-red-500/10 border border-red-500 text-red-400">
+              <AlertTriangle size={12} />
             </div>
           ) : (
             <div className="flex items-center justify-center w-5 h-5 rounded-none bg-green/10 border border-green text-(--text-primary)">
@@ -45,10 +56,14 @@ export default function ChatMessage({ message, className }: ChatMessageProps) {
           <PanelTitle
             className={cn(
               "text-[0.68rem] sm:text-xs font-mono tracking-wider",
-              isUser ? "text-(--text-secondary)" : "text-(--text-primary)",
+              isUser
+                ? "text-(--text-secondary)"
+                : message.isError
+                  ? "text-red-400"
+                  : "text-(--text-primary)",
             )}
           >
-            {isUser ? "USER QUERY" : "RAG RESPONSE"}
+            {isUser ? "USER QUERY" : message.isError ? "SYSTEM ERROR" : "RAG RESPONSE"}
           </PanelTitle>
         </div>
 
@@ -57,8 +72,8 @@ export default function ChatMessage({ message, className }: ChatMessageProps) {
             PROMPT
           </Badge>
         ) : message.isError ? (
-          <Badge variant="WARNING" className="text-[0.58rem] font-mono">
-            ERROR
+          <Badge variant="CRITICAL" className="text-[0.58rem] font-mono">
+            FAILED
           </Badge>
         ) : (
           <Badge variant="ACTIVE" className="text-[0.58rem] font-mono">
@@ -72,6 +87,21 @@ export default function ChatMessage({ message, className }: ChatMessageProps) {
           <p className="text-(--text-secondary) whitespace-pre-wrap font-sans font-normal">
             {message.text}
           </p>
+        ) : message.isError ? (
+          <div className="p-3 bg-red-950/30 border border-red-800/40 text-red-200 text-xs font-sans space-y-1">
+            <div className="font-semibold text-red-400 flex items-center gap-1.5 font-mono text-[0.7rem]">
+              <AlertTriangle size={13} className="shrink-0" />
+              <span>Query Execution Interrupted</span>
+            </div>
+            <p className="text-red-300 text-xs leading-relaxed">
+              {formatErrorMessage(message.text)}
+            </p>
+          </div>
+        ) : !message.text ? (
+          <div className="flex items-center gap-2.5 py-2 text-xs font-mono text-(--text-muted)">
+            <Loader2 size={14} className="animate-spin text-(--accent-primary)" />
+            <span className="animate-pulse">Retrieving vector contexts & streaming response...</span>
+          </div>
         ) : (
           <div className="text-(--text-secondary) space-y-2 prose-sm max-w-none">
             <Markdown
@@ -164,7 +194,7 @@ export default function ChatMessage({ message, className }: ChatMessageProps) {
           </div>
         )}
 
-        {!isUser && message.sources && message.sources.length > 0 && (
+        {!isUser && !message.isError && message.sources && message.sources.length > 0 && (
           <div className="pt-2.5 border-t border-(--border)">
             <div className="flex items-center gap-1.5 text-[0.6rem] font-mono text-(--text-muted) uppercase tracking-wider mb-2">
               <FileCode2 size={11} className="text-(--text-primary)" />

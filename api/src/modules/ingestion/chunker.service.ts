@@ -90,7 +90,11 @@ export class ChunkerService {
     const allChunks: ChunkedItem[] = [];
 
     for (const file of files) {
-      if (!file.content || this.shouldIgnoreFile(file.path)) {
+      if (
+        !file.content ||
+        this.shouldIgnoreFile(file.path) ||
+        file.content.includes('\0')
+      ) {
         continue;
       }
 
@@ -111,8 +115,10 @@ export class ChunkerService {
       return [];
     }
 
-    // If small file with reasonable length, return single chunk
-    if (lines.length <= this.maxChunkLines && content.length <= this.maxChunkChars) {
+    if (
+      lines.length <= this.maxChunkLines &&
+      content.length <= this.maxChunkChars
+    ) {
       return [
         {
           filePath,
@@ -131,14 +137,12 @@ export class ChunkerService {
       let chunkLines = lines.slice(startIdx, endIdx);
       let chunkText = chunkLines.join('\n').trim();
 
-      // If text is still too large, reduce line window
       while (chunkText.length > this.maxChunkChars && endIdx > startIdx + 1) {
         endIdx = Math.floor((startIdx + endIdx) / 2);
         chunkLines = lines.slice(startIdx, endIdx);
         chunkText = chunkLines.join('\n').trim();
       }
 
-      // Hard trim if a single line is absurdly long
       if (chunkText.length > this.maxChunkChars) {
         chunkText = chunkText.slice(0, this.maxChunkChars);
       }

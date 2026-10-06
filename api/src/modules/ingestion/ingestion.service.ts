@@ -30,7 +30,6 @@ export class IngestionService {
         },
       });
 
-      // 1. Chunk all code files
       const chunks = this.chunkerService.chunkFiles(files);
 
       if (!chunks.length) {
@@ -40,23 +39,21 @@ export class IngestionService {
         await this.prismaService.repository.update({
           where: { id: repositoryId },
           data: {
-            status: ((RepositoryStatus as any).SUCCESS || (RepositoryStatus as any).COMPLETED || 'SUCCESS') as RepositoryStatus,
+            status: RepositoryStatus.SUCCESS,
             processedFilesCount: files.length,
           },
         });
         return;
       }
 
-      // 2. Generate embeddings in batches
-      const batchSize = 16;
+      const batchSize = 8;
       for (let i = 0; i < chunks.length; i += batchSize) {
         const batch = chunks.slice(i, i + batchSize);
         const batchTexts = batch.map(
           (c) => `File: ${c.filePath}\n${c.content}`,
         );
 
-        const embeddings =
-          await this.embeddingService.embedBatch(batchTexts);
+        const embeddings = await this.embeddingService.embedBatch(batchTexts);
 
         const chunksToInsert = batch.map((c, idx) => ({
           repositoryId,
@@ -80,12 +77,16 @@ export class IngestionService {
             processedFilesCount: processedFiles,
           },
         });
+
+        if (i + batchSize < chunks.length) {
+          await new Promise((resolve) => setTimeout(resolve, 400));
+        }
       }
 
       await this.prismaService.repository.update({
         where: { id: repositoryId },
         data: {
-          status: ((RepositoryStatus as any).SUCCESS || (RepositoryStatus as any).COMPLETED || 'SUCCESS') as RepositoryStatus,
+          status: RepositoryStatus.SUCCESS,
           processedFilesCount: files.length,
         },
       });
@@ -94,11 +95,12 @@ export class IngestionService {
         `Ingestion complete for repository ${repositoryId}. Successfully saved ${chunks.length} chunks.`,
       );
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : String(err);
+      const rawError = err instanceof Error ? err.message : String(err);
       this.logger.error(
-        `Ingestion failed for repository ${repositoryId}: ${errorMessage}`,
+        `Ingestion failed for repository ${repositoryId}: ${rawError}`,
       );
+
+      const errorMessage = this.formatErrorMessage(rawError);
 
       await this.prismaService.repository.update({
         where: { id: repositoryId },
@@ -108,5 +110,47 @@ export class IngestionService {
         },
       });
     }
+  }
+
+  private formatErrorMessage(rawError: string): string {
+    const str = rawError.trim();
+
+    if (
+      str.includes('429') ||
+      str.includes('RATE_TOKEN_LIMIT_EXCEEDED') ||
+      str.toLowerCase().includes('rate limit exceeded')
+    ) {
+      return 'AI Embedding rate limit reached (100,000 tokens/min free tier limit). Please wait 30-60 seconds before retrying.';
+    }
+
+    if (
+      str.includes('INPUT_TOKEN_LIMIT_EXCEEDED') ||
+      str.toLowerCase().includes('exceeds the model')
+    ) {
+      return 'File chunks exceeded the token limit and could not be indexed.';
+    }
+
+    if (str.includes('404') && str.toLowerCase().includes('model')) {
+      return 'AI model not found or unavailable. Please check API model configuration.';
+    }
+
+    if (str.includes('22021') || str.includes('invalid byte sequence')) {
+      return 'Corrupted binary characters encountered during indexing.';
+    }
+
+    const jsonMatch = str.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (typeof parsed.detail === 'string') return parsed.detail;
+        if (parsed.detail?.message) return parsed.detail.message;
+        if (parsed.message) return parsed.message;
+        if (parsed.error?.message) return parsed.error.message;
+      } catch {
+        // ignore
+      }
+    }
+
+    return str.replace(/^Error:\s*/i, '');
   }
 }

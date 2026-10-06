@@ -54,9 +54,12 @@ export class PrismaService
     for (const chunk of chunks) {
       const vectorStr = `[${chunk.embedding.join(',')}]`;
       const id = crypto.randomUUID();
+      const sanitizedContent = (chunk.content || '').replace(/\0/g, '');
+      const sanitizedFilePath = (chunk.filePath || '').replace(/\0/g, '');
+
       await this.$executeRaw`
         INSERT INTO "CodeChunk" ("id", "repositoryId", "filePath", "content", "startLine", "endLine", "createdAt", "embedding")
-        VALUES (${id}, ${chunk.repositoryId}, ${chunk.filePath}, ${chunk.content}, ${chunk.startLine}, ${chunk.endLine}, NOW(), ${vectorStr}::vector);
+        VALUES (${id}, ${chunk.repositoryId}, ${sanitizedFilePath}, ${sanitizedContent}, ${chunk.startLine}, ${chunk.endLine}, NOW(), ${vectorStr}::vector);
       `;
     }
   }

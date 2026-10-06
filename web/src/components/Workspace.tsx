@@ -1,4 +1,4 @@
-import { Search, SlidersHorizontal, XIcon } from "lucide-react";
+import { AlertTriangle, RotateCcw, Search, SlidersHorizontal, XIcon } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Button } from "./ui/button/button";
 import { Badge } from "./ui/badge/badge";
@@ -10,6 +10,8 @@ import { useConversation } from "@/hooks/useConversation";
 import Sidebar from "./Sidebar";
 import { useRepositoryStatus } from "@/hooks/useRepositoryStatus";
 import { useAskChat } from "@/hooks/useAskChat";
+import { useDeleteRepository } from "@/hooks/useRepository";
+import { formatErrorMessage } from "@/lib/error-formatter";
 import {
   Tooltip,
   TooltipContent,
@@ -39,14 +41,27 @@ export default function Workspace() {
   };
 
   useEffect(() => {
-    if (status?.name || status?.url) {
+    if (status?.status === RepositoryStatus.IDLE || !status?.id) {
       setActiveSource({
-        type: status.url ? "link" : "folder",
-        value: status.url || status.name || "Active Repository",
+        type: "link",
+        value: "No repository selected",
+        fileCount: 0,
+      });
+    } else if (status?.name || status?.url) {
+      const isZip = status.name?.toLowerCase().includes("zip");
+      setActiveSource({
+        type: status.url ? "link" : isZip ? "zip" : "folder",
+        value: status.url || status.name || "Local Selection",
         fileCount: status.totalFilesCount,
       });
     }
-  }, [status?.name, status?.url, status?.totalFilesCount]);
+  }, [
+    status?.name,
+    status?.url,
+    status?.totalFilesCount,
+    status?.status,
+    status?.id,
+  ]);
 
   const {
     messages,
@@ -58,6 +73,7 @@ export default function Workspace() {
     clearMessages,
   } = useConversation();
 
+  const { mutate: deleteRepository, isPending: isDeleting } = useDeleteRepository();
   const { mutateAsync: askChat, isPending: isAskPending } = useAskChat();
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -168,16 +184,18 @@ export default function Workspace() {
                         >
                           {progress.status === RepositoryStatus.PENDING
                             ? `PENDING (${progress.processedFilesCount}/${progress.totalFilesCount})`
-                            : progress.status === RepositoryStatus.IDLE
-                              ? "IDLE"
-                              : progress.status}
+                            : progress.status === RepositoryStatus.SUCCESS
+                              ? `INDEXED (${progress.totalFilesCount} FILES)`
+                              : progress.status === RepositoryStatus.IDLE
+                                ? "IDLE"
+                                : progress.status}
                         </Badge>
                       </div>
                     </TooltipTrigger>
                     <TooltipContent side="bottom" className="max-w-xs normal-case">
                       {progress.errorMessage ? (
                         <span className="text-red-400 font-sans">
-                          {progress.errorMessage}
+                          {formatErrorMessage(progress.errorMessage)}
                         </span>
                       ) : progress.status === RepositoryStatus.PENDING ? (
                         `Processing repository (${progress.processedFilesCount} / ${progress.totalFilesCount} files completed)`
@@ -216,7 +234,31 @@ export default function Workspace() {
           </div>
 
           <div className="flex-1 min-h-0 overflow-y-auto p-3 sm:p-5 md:p-6 space-y-4">
-            <div className="mx-auto max-w-4xl">
+            <div className="mx-auto max-w-4xl space-y-4">
+              {progress.status === RepositoryStatus.FAILED && (
+                <div className="border border-red-900/60 bg-red-950/20 p-3.5 sm:p-4 text-red-200 text-xs font-sans space-y-2 border-l-[3px] border-l-red-500 shadow-[0_0_15px_rgba(239,68,68,0.15)]">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-red-400 font-mono text-xs font-semibold">
+                      <AlertTriangle size={14} className="shrink-0" />
+                      <span>CODEBASE INDEXING FAILED</span>
+                    </div>
+                    <Button
+                      variant="ABORT"
+                      size="SM"
+                      disabled={isDeleting}
+                      onClick={() => deleteRepository()}
+                      className="py-0.5 px-2 text-[0.62rem]"
+                    >
+                      <RotateCcw size={10} className="mr-1" />
+                      <span>{isDeleting ? "RESETTING..." : "RESET & RETRY"}</span>
+                    </Button>
+                  </div>
+                  <p className="text-red-300/90 text-xs leading-relaxed">
+                    {formatErrorMessage(progress.errorMessage)}
+                  </p>
+                </div>
+              )}
+
               {messages.map((message) => (
                 <ChatMessage message={message} key={message.id} />
               ))}

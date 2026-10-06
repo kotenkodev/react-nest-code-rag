@@ -56,7 +56,7 @@ export class RepositoriesService {
         where: { id: user.repositoryId },
         data: {
           name,
-          url,
+          url: url || null,
           totalFilesCount: totalFiles,
           processedFilesCount: 0,
           errorMessage: null,
@@ -69,7 +69,7 @@ export class RepositoriesService {
     const repo = await this.prismaService.repository.create({
       data: {
         name,
-        url,
+        url: url || null,
         totalFilesCount: totalFiles,
         processedFilesCount: 0,
         errorMessage: null,
@@ -272,5 +272,19 @@ export class RepositoriesService {
       totalFilesCount: userRecord?.repository?.totalFilesCount || 0,
       errorMessage: userRecord?.repository?.errorMessage || '',
     };
+  }
+
+  async deleteRepository(email: string) {
+    const user = await this.prismaService.user.findUnique({
+      where: { email },
+    });
+
+    if (user?.repositoryId) {
+      await this.prismaService.repository.delete({
+        where: { id: user.repositoryId },
+      });
+    }
+
+    return { message: 'Repository indexing cleared successfully' };
   }
 }
